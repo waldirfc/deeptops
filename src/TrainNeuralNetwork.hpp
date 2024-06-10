@@ -34,13 +34,20 @@
 
 namespace tops {
 
-  //! This class trains the Variable Length Markov Chain using the context algorithm.
+  //! This class trains the Neural Network using the SGD algorithm.
   class DLLEXPORT TrainNeuralNetwork : public ProbabilisticModelCreator {
   public:
     TrainNeuralNetwork () {}
     virtual ~TrainNeuralNetwork () {};
+    //! Creates a probability model
+    /*! \param parameters is a set of parameters that is utilized to build the model */
     virtual ProbabilisticModelPtr create( ProbabilisticModelParameters & parameters) const ;    
-    virtual std::string help() const ;
+    
+    //! Provides a help
+    virtual std::string help() const {
+      std::string s;
+      return s;
+    }
 
   };
   typedef boost::shared_ptr <TrainNeuralNetwork> TrainNeuralNetworkPtr ;

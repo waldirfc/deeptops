@@ -35,6 +35,7 @@
 #include <vector>
 
 #include <torch/torch.h>
+#include <torch/script.h>
 
 namespace tops {
 
@@ -43,15 +44,29 @@ namespace tops {
   {
 
   private:
-    torch::nn::Sequential _module_nn;
+    torch::nn::Sequential _module_nn; /*!< Sequential layers to train */    
+    torch::jit::script::Module _trained_module_nn; /*!< Layers (not necessarely sequential) that were trained beforehand */
+    std::string _trained_model_file;
+    int _sequence_length;
   public:
     
+    //! Constructor.
+    /*!
+      
+    */
     NeuralNetworkModel() ;
-    //! Constructor
-    /*! \param module_nn is the actual neural network referenced by the module libtorch class
+
+    //! Constructor.
+    /*! 
+      \param module_nn_ptr is the pointer to a Sequential architecture of layers
      */
-    
     NeuralNetworkModel(std::shared_ptr<torch::nn::Sequential> module_nn_ptr) ;
+
+    //! Constructor.
+    /*! 
+      \param trained_model_file file containing a trained neural network (can by of any kind of architecture of layers)
+     */
+    NeuralNetworkModel(std::string trained_model_file) ;
 
 
     //! Choose
@@ -93,13 +108,17 @@ namespace tops {
 
     virtual ProbabilisticModelParameters parameters() const;
 
-    void setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr) ;
+    void setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr, std::string trained_model_file, int sequence_length) ;
 
-    torch::Tensor sequences_to_Tensor(SequenceList & sample);
+    // Transform a list of sequences into Tensor data
+    torch::Tensor sequences_to_Tensor(SequenceList & sample) const;
 
-    virtual double trainSGDAlgorithm(SequenceList & training_set, int epochs);
+    // Train the model using the SGD algorithm
+    virtual double trainSGDAlgorithm(SequenceList & training_set, int epochs, int batch_size, double learning_rate);
 
-    
+    // Evaluates a Sequence
+    //virtual double evaluate(Sequence & s, unsigned int begin, unsigned int end);
+    virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end);
   };
 
   typedef boost::shared_ptr<NeuralNetworkModel> NeuralNetworkModelPtr;

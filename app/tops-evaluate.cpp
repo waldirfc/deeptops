@@ -93,13 +93,15 @@ int main (int argc, char ** argv)
       map<std::string,std::string>::const_iterator it;
       AlphabetPtr alphabet;
       alphabet = m->alphabet();
+      std::cout << "alphabet: " << alphabet->str() << std::endl;
 
       SequenceEntry entry(alphabet);
       while(!cin.eof()) {
         cin >> entry;
-        if(entry.getSequence().size() == 0)
-          continue;
+        std::cout << "entry: " << entry << std::endl;
         Sequence s = entry.getSequence();
+        if(s.size() == 0)
+          continue;        
         double prob =  m->evaluate(s, 0, s.size() -1, phase);
 
 #if 0

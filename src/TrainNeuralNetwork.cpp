@@ -23,9 +23,11 @@
  */
 
 #include "util.hpp"
-
-#include "ContextTree.hpp"
 #include "ProbabilisticModelParameter.hpp"
+#include "ProbabilisticModel.hpp"
+#include "ProbabilisticModelCreator.hpp"
+#include "ConfigurationReader.hpp"
+#include "ProbabilisticModelCreatorClient.hpp"
 #include "NeuralNetworkModel.hpp"
 #include "TrainNeuralNetwork.hpp"
 
@@ -35,54 +37,67 @@
 
 namespace tops {
 
+
 ProbabilisticModelPtr TrainNeuralNetwork::create(ProbabilisticModelParameters & parameters) const {
-    ProbabilisticModelParameterValuePtr initmodelpar = parameters.getOptionalParameterValue("initial_model");
+    ProbabilisticModelParameterValuePtr init_model_param = parameters.getOptionalParameterValue("initial_model");
     ProbabilisticModelParameterValuePtr initspecificationpar = parameters.getOptionalParameterValue("initial_specification");
 
-    ProbabilisticModelParameterValuePtr trainpar = parameters.getMandatoryParameterValue("training_set");
-    //ProbabilisticModelParameterValuePtr thrpar = parameters.getOptionalParameterValue("threshold");
-    ProbabilisticModelParameterValuePtr maxiterpar = parameters.getOptionalParameterValue("maxiter");
+    ProbabilisticModelParameterValuePtr train_set_param = parameters.getMandatoryParameterValue("training_set");
+    
+    ProbabilisticModelParameterValuePtr epochs_param = parameters.getOptionalParameterValue("epochs");
+    ProbabilisticModelParameterValuePtr batch_size_param = parameters.getOptionalParameterValue("batch_size");
+    ProbabilisticModelParameterValuePtr learning_rate_param = parameters.getOptionalParameterValue("learning_rate");
 
     if(initspecificationpar != NULL) 
-	    initmodelpar = initspecificationpar;
-    if((initspecificationpar == NULL) && (initmodelpar == NULL)) 
+	    init_model_param = initspecificationpar;
+    if((initspecificationpar == NULL) && (init_model_param == NULL)) 
 	    std::cerr << "ERROR: initial_specification is a mandatory paramenter\n" << std::endl;
+    
+    int epochs = 100;
+    if(epochs_param != NULL)
+      epochs = epochs_param->getInt();
 
-    double threshold = 1e-5;
-    if(thrpar != NULL)
-      threshold = thrpar->getDouble();
-    int maxiter = 500;
-    if(maxiterpar != NULL)
-      maxiter = maxiterpar->getInt();
+    int batch_size = 64;
+    if(batch_size_param != NULL)
+      batch_size = batch_size_param->getInt();
+    
+    double learning_rate = 0.01;
+    if(learning_rate_param != NULL)
+      learning_rate = learning_rate_param->getDouble();
 
     ProbabilisticModelCreatorClient creator;
-    std::string name = initmodelpar->getString();
+    std::string name = init_model_param->getString();
     ProbabilisticModelPtr m = creator.create(name);
-    SequenceEntryList sample_set;
+    
     AlphabetPtr alphabet = m->alphabet();
-    readSequencesFromFile(sample_set, alphabet, trainpar->getString());
+
+    // how to train sequences ??????
+    SequenceEntryList sample_set;    
+    readSequencesFromFile(sample_set, alphabet, train_set_param->getString());
     SequenceList seqs;
     for(int i = 0; i < (int)sample_set.size(); i++)
       seqs.push_back(sample_set[i]->getSequence());
-    m->trainBaumWelch(seqs, maxiter, threshold);
+    // ??????
+
+    double loss_value = m->trainSGDAlgorithm(seqs, epochs, batch_size, learning_rate);
+    std::cout << loss_value << std::endl;
+
     return m;
 }
-
+/*
 //! Provides a help
 std::string TrainNeuralNetwork::help() const {
       std::stringstream out;
       out << "\nUSAGE: " << std::endl;
       out << "Mandatory parameters: " << std::endl;
       out << "\ntraining_set" << std::endl;
-      out << "\talphabet" << std::endl;
-      out << "\tcut" << std::endl;
+      out << "\talphabet" << std::endl;      
       out << "Example: " << std::endl;
-      out << "\ttraining_algorithm=\"ContextAlgorithm\"" << std::endl;
+      out << "\ttraining_algorithm=\"SGDAlgorithm\"" << std::endl;
       out << "\talphabet=(\"0\", \"1\")" << std::endl;
-      out << "\ttraining_set= \"input.seq" << std::endl;
-      out << "\tcut=1" << std::endl;
+      out << "\ttraining_set= \"input.seq" << std::endl;      
       return out.str();
-}
+}*/
 
 }
 ;

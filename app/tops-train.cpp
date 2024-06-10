@@ -51,6 +51,7 @@
 #include "TrainPhasedMarkovChainContextAlgorithm.hpp"
 #include "TrainMaximalDependenceDecomposition.hpp"
 #include "TrainHMMMaximumLikelihood.hpp"
+#include "TrainNeuralNetwork.hpp"
 #include "RemoveSequenceFromModel.hpp"
 #include "SequenceFormat.hpp"
 #include "version.hpp"
@@ -116,7 +117,9 @@ int main(int argc, char ** argv) {
         createModelCommand["SmoothedHistogramBurge"] = SmoothedHistogramBurgePtr(new SmoothedHistogramBurge());
         createModelCommand["DiscreteIIDModel"] = TrainDiscreteIIDModelPtr(new TrainDiscreteIIDModel());
         createModelCommand["MaximalDependenceDecomposition"] = TrainMaximalDependenceDecompositionPtr(new TrainMaximalDependenceDecomposition());
-
+        
+        // training NeuralNetwork
+        createModelCommand["SGDNeuralNetwork"] = TrainNeuralNetworkPtr(new TrainNeuralNetwork());
 
         modelSelectionCommand["BIC"] = BayesianInformationCriteriaPtr(
                         new BayesianInformationCriteria());

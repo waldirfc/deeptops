@@ -93,6 +93,7 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
     "/home/waldir/Documents/deeptops/src/TrainFixedLengthMarkovChain.hpp"
     "/home/waldir/Documents/deeptops/src/TrainInterpolatedMarkovChain.hpp"
     "/home/waldir/Documents/deeptops/src/TrainHMMBaumWelch.hpp"
+    "/home/waldir/Documents/deeptops/src/TrainNeuralNetwork.hpp"
     "/home/waldir/Documents/deeptops/src/TrainHMMMaximumLikelihood.hpp"
     "/home/waldir/Documents/deeptops/src/TrainPhasedMarkovChain.hpp"
     "/home/waldir/Documents/deeptops/src/TrainInterpolatedPhasedMarkovChain.hpp"

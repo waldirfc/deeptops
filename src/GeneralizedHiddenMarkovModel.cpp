@@ -2,7 +2,7 @@
  *       GeneralizedHiddenMarkovModel.cpp
  *
  *       Copyright 2011 Andre Yoshiaki Kashiwabara <akashiwabara@usp.br>
- *                      Ígor Bonadio <ibonadio@ime.usp.br>
+ *                      ï¿½gor Bonadio <ibonadio@ime.usp.br>
  *                      Vitor Onuchic <vitoronuchic@gmail.com>
  *                      Alan Mitchell Durham <aland@usp.br>
  *
@@ -64,6 +64,7 @@ namespace tops {
     }
 
     std::string cfg = modelpar->getString();
+
     ProbabilisticModelCreatorClient creator;
     ConfigurationReader modelreader;
     if ((cfg.size()) > 0 && (cfg[0] == '[')) {
@@ -85,18 +86,17 @@ namespace tops {
         exit(-1);
       }
 
-    }
-     else
-        {
+    } else {
 
           ProbabilisticModelPtr m = creator.create(cfg);
           if (m == NULL) {
             std::cerr << "Can not load model " << cfg << "! " << std::endl;
             return;
-          }
+          }          
 
           _models[model_name] = m;
-        }
+    }
+    
   }
 
   void GeneralizedHiddenMarkovModel::setStateNames(AlphabetPtr alphabet) {
@@ -134,6 +134,9 @@ int GeneralizedHiddenMarkovModel::configureSignalState(std::string observation_m
   signal->setClasses(classes);
  _all_states[symbol->id()] = signal;
   _signal_states.push_back(signal);
+
+  //std::cout << "GHMM state configureSignalState: " << observation_model_name << " - " << state_name << "\n";
+
   return symbol->id();
 }
 
@@ -143,12 +146,16 @@ int GeneralizedHiddenMarkovModel::configureGeometricDurationState(std::string mo
   SymbolPtr symbol = _state_names->getSymbol(state_name);
   GHMMStatePtr state = GHMMStatePtr(new GHMMState(model, transition_distr,
                                                   symbol));
+     
   state->setInputPhase(iphase);
   state->setOutputPhase(ophase);
   state->setClasses(classes);
   _all_states[symbol->id()] = state;
   state->observationModelName(model_name);
   _geometric_duration_states.push_back(state);
+
+  //std::cout << "GHMM state configureGeometricDurationState: " << model_name << " - " << state_name << "\n";
+
   return symbol->id();
 }
 
@@ -1110,12 +1117,12 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
         terminalprob->initializeFromMap(terminal_probabilities_par->getDoubleMap(), states);
         setTerminalProbability(terminalprob);
     } else {
-        DiscreteIIDModelPtr terminalprob = DiscreteIIDModelPtr(new DiscreteIIDModel());
-	DoubleVector v ;
-	for(unsigned int l = 0; l < states->size(); l++)
-	  v.push_back((double)1.0/(double)states->size());
-	terminalprob->setProbabilities(v);
-        setTerminalProbability(terminalprob);
+      DiscreteIIDModelPtr terminalprob = DiscreteIIDModelPtr(new DiscreteIIDModel());
+	    DoubleVector v ;
+	    for(unsigned int l = 0; l < states->size(); l++)
+	      v.push_back((double)1.0/(double)states->size());
+	    terminalprob->setProbabilities(v);
+      setTerminalProbability(terminalprob);
     }
 
 
@@ -1129,7 +1136,7 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
       DoubleVector probs;
       probs.resize(states->size());
       for (unsigned int to = 0; to< states->size(); to++)
-	probs[to] = 0;
+	      probs[to] = 0;
       trans[states->getSymbol(from)->name()]  = probs;
     }
 
@@ -1151,21 +1158,19 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
       }
       int id = states->getSymbol(to)->id();
       if (trans.find(from) == trans.end()) {
-	DoubleVector probs;
-	probs.resize(states->size());
-	trans[from] = probs;
-	trans[from][id] = it->second;
+        DoubleVector probs;
+        probs.resize(states->size());
+        trans[from] = probs;
+        trans[from][id] = it->second;
       } else  {
-	trans[from][id] = it->second;
+        trans[from][id] = it->second;
       }
-
-	
     }
 
     setAlphabet(observation_symbols);
     int nclasses = -1;
     for (int i = 0; i < (int) state_names.size(); i++) {
-      trim_spaces(state_names[i]);
+      trim_spaces(state_names[i]);      
       int id;
       ProbabilisticModelParameterValuePtr statepar =
         parameters.getOptionalParameterValue(state_names[i]);
@@ -1195,10 +1200,10 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
         ProbabilisticModelParameterValuePtr inputphasepar =
           statepars->getOptionalParameterValue("input_phase");
 
-	ProbabilisticModelParameterValuePtr extendEmissionpar =
+	      ProbabilisticModelParameterValuePtr extendEmissionpar =
           statepars->getOptionalParameterValue("extend_emission");
-	ProbabilisticModelParameterValuePtr classespar =
-	  statepars->getOptionalParameterValue("classes");
+	      ProbabilisticModelParameterValuePtr classespar =
+	        statepars->getOptionalParameterValue("classes");
 
 
         if (observationpar == NULL) {
@@ -1208,51 +1213,53 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
         }
 
         std::string model_name = observationpar->getString();
+
         restore_model(model_name, parameters);
 
-	DiscreteIIDModelPtr transition = DiscreteIIDModelPtr(new DiscreteIIDModel(trans[state_names[i]]));
+        DiscreteIIDModelPtr transition = DiscreteIIDModelPtr(new DiscreteIIDModel(trans[state_names[i]]));
 
-	int iphase = -1;
-	int ophase = -1;
-	std::vector<int> classes;
-	if(classespar != NULL){
-	  std::vector<double> cl = classespar->getDoubleVector();
-	  classes.resize(cl.size());
-	  for(int c = 0; c < (int)cl.size(); c++){
-	    classes[c] = (int)cl[c];
-	    if(classes[c] > nclasses)
-	      nclasses = classes[c];
-	  }
-	}
+        int iphase = -1;
+        int ophase = -1;
+        std::vector<int> classes;
+        if(classespar != NULL){
+          std::vector<double> cl = classespar->getDoubleVector();
+          classes.resize(cl.size());
+          for(int c = 0; c < (int)cl.size(); c++){
+            classes[c] = (int)cl[c];
+            if(classes[c] > nclasses)
+              nclasses = classes[c];
+          }
+        }
         if(inputphasepar != NULL)
-            iphase = inputphasepar->getInt();
+          iphase = inputphasepar->getInt();
         if(outputphasepar != NULL)
-            ophase = outputphasepar->getInt();
+          ophase = outputphasepar->getInt();
         if (durationpar == NULL) {
-            if (lengthpar == NULL) {
-        id = configureGeometricDurationState(model_name, transition, state_names[i], iphase, ophase, classes);
-            } else {
-                id = configureSignalState(model_name,
-                                     transition,
-                                     lengthpar->getDouble(),
-            state_names[i], iphase, ophase, classes);
-            }
+          if (lengthpar == NULL) {
+            
+            id = configureGeometricDurationState(model_name, transition, state_names[i], iphase, ophase, classes);
+          } else {              
+            id = configureSignalState(model_name,
+                                      transition,
+                                      lengthpar->getDouble(),
+                                      state_names[i], iphase, ophase, classes);
+          }
 
         } else {
 
-            // Explicit duration state
-            std::string duration_model_name = durationpar->getString();
-            restore_model(duration_model_name,  parameters);
-            id = configureExplicitDurationState(model_name, transition, duration_model_name, state_names[i], iphase, ophase, classes);
-            if(extendEmissionpar != NULL) {
-                int startEmissionOffset = (int)(extendEmissionpar->getDoubleVector())[0];
-                int endEmissionOffset = (int)(extendEmissionpar->getDoubleVector())[1];
-                _all_states[id]->setStart(startEmissionOffset);
-                _all_states[id]->setStop(endEmissionOffset);
-            } else {
-                _all_states[id]->setStart(0);
-                _all_states[id]->setStop(0);
-	    }
+          // Explicit duration state
+          std::string duration_model_name = durationpar->getString();
+          restore_model(duration_model_name,  parameters);
+          id = configureExplicitDurationState(model_name, transition, duration_model_name, state_names[i], iphase, ophase, classes);
+          if(extendEmissionpar != NULL) {
+            int startEmissionOffset = (int)(extendEmissionpar->getDoubleVector())[0];
+            int endEmissionOffset = (int)(extendEmissionpar->getDoubleVector())[1];
+            _all_states[id]->setStart(startEmissionOffset);
+            _all_states[id]->setStop(endEmissionOffset);
+          } else {
+            _all_states[id]->setStart(0);
+            _all_states[id]->setStop(0);
+          }
         }
       }
     }
@@ -1264,12 +1271,21 @@ Sequence & GeneralizedHiddenMarkovModel::chooseObservation(Sequence & h, int i,
     fixStatesPredecessorSuccessor();
 
 
-    for (int i = 0; i < (int)_all_states.size(); i++)
-        if (_all_states[i]->transition()->size() <= 0)
-            {
-                std::cerr << "ERROR: GHMM initialization, state " << _all_states[i]->name() << " has outdegree equals to zero !\n";
-                exit(-1);
-            }
+    /*for (int i = 0; i < (int)_all_states.size(); i++) {
+      std::cout << "GHMM state: " << _all_states[i]->name() << "\n" << _all_states[i]->transition()->size() << "\n" << _all_states[i]->transition()->str() << "\n";
+      if (_all_states[i]->transition()->size() <= 0) {
+        std::cerr << "ERROR: GHMM initialization, state " << _all_states[i]->name() << " has outdegree equals to zero !\n";
+        exit(-1);
+      }
+    }
+
+      std::map<std::string, tops::ProbabilisticModelPtr>::iterator iteratorX;      
+       for (iteratorX = _models.begin(); iteratorX != _models.end(); iteratorX++)
+       {
+          std::cout << " -> _model[" << iteratorX->first << "]: " << iteratorX->second->str();
+       }
+       std::cout << "\n";*/
+    std::cout << "GHMM intialized\n" << this->str();
   }
 
 
