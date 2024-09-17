@@ -85,7 +85,7 @@ namespace tops {
       std::string str;
       std::copy(first, last, std::back_inserter(str));
       _c->setCurrentParameterName(str);
-      
+
       //std::cerr << "PARAMETER NAME: "  << str << std::endl;
     }
   private:
@@ -281,14 +281,18 @@ namespace tops {
 
   struct add_prob
   {
-    add_prob(ConfigurationReader *c) : _c(c){};
+    add_prob(ConfigurationReader *c, bool _islayer = false) : _c(c){ islayer = _islayer; };
     void operator()(double n) const
     {
-      (((_c->getCurrentParameterValue()->getDoubleMap()).find(_c->getAuxString()))->second) = n;
+      if(!islayer)
+        (((_c->getCurrentParameterValue()->getDoubleMap()).find(_c->getAuxString()))->second) = n;
+      else
+        _c->setProbabilityValue(n);
       //      std::cerr << "ADD_PROB_ELEMENT: "  << n  << std::endl;
     }
   private:
     ConfigurationReader * _c;
+    bool islayer;
   };
 
 
@@ -420,9 +424,6 @@ namespace tops {
 
 
 
-
-
-
   struct add_transition_prob
   {
     add_transition_prob(ConfigurationReader *c) : _c(c){};
@@ -446,7 +447,7 @@ namespace tops {
       //ModuleParameterValue aux_module = new ModuleParameterValue();
       ModuleParameterValuePtr architecture = ModuleParameterValuePtr(new ModuleParameterValue(std::make_shared<torch::nn::Sequential>(_c->getAuxModuleLayers())));
       _c->setCurrentParameterValue(architecture);
-    
+
       //std::cerr << "Architecture created\n";
     }
     private:
@@ -468,7 +469,7 @@ namespace tops {
   };
 
   struct add_value_to_tuple{
-    add_value_to_tuple(ConfigurationReader *c) : _c(c){};    
+    add_value_to_tuple(ConfigurationReader *c) : _c(c){};
     void operator()(int value) const {
       _c->addValueAuxParametersValues(value);
     }
@@ -493,11 +494,11 @@ namespace tops {
     void operator()(IteratorT first, IteratorT last) const {
       std::string str;
       std::copy(first, last, std::back_inserter(str));
-      
+
       if(_c->getAuxParameterName() == "") _c->setAuxParameterName("kernel_size");
       //std::cerr << "parameter -> " << _c->getAuxParameterName() << ": ";
       //std::cerr << "<<< " << str << " >>>" << endl;
-      
+
       _c->UpdateParametersLayer();
 
       _c->resetAuxParametersValues();
@@ -537,55 +538,337 @@ namespace tops {
       ConfigurationReader * _c;
   };
 
-  struct create_Convolution_layer
-  {
+  /*
+    CREATE AND ADD CONVOLUTIONAL LAYERS
+  */
+  struct create_Convolution_layer {
     create_Convolution_layer(ConfigurationReader *c) : _c(c){};
+
+    template <typename OptionsType, int Dim>
+    OptionsType configureConvOptions() const {
+        try {
+            OptionsType conv_options = OptionsType(
+                _c->getValueParametersLayer("in_channels"),
+                _c->getValueParametersLayer("out_channels"),
+                _c->getVectorValuesParametersLayer<Dim>("kernel_size"))
+                .stride(_c->getVectorValuesParametersLayer<Dim>("stride"))
+                .padding(_c->getVectorValuesParametersLayer<Dim>("padding"))
+                .dilation(_c->getVectorValuesParametersLayer<Dim>("dilation"))
+                .groups(_c->getValueParametersLayer("groups"))
+                .bias(_c->getValueParametersLayer("bias"))
+                .padding_mode(torch::kCircular);
+            return conv_options;
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Error configuring convolutional options: " + std::string(e.what()));
+        }
+    }
+    void createConv1dLayer() const {
+      if (_c->getAuxLayer() == "Conv1d") {
+          auto conv_options = configureConvOptions<torch::nn::Conv1dOptions, 1>();
+          auto conv_layer = torch::nn::Conv1d(conv_options);
+          _c->getAuxModuleLayers()->push_back(conv_layer);
+          _c->IncCurrentLayer();
+      }
+    }
+
+    void createConv2dLayer() const {
+        if (_c->getAuxLayer() == "Conv2d") {
+            auto conv_options = configureConvOptions<torch::nn::Conv2dOptions, 2>();
+            auto conv_layer = torch::nn::Conv2d(conv_options);
+            _c->getAuxModuleLayers()->push_back(conv_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createConv3dLayer() const {
+        if (_c->getAuxLayer() == "Conv3d") {
+            auto conv_options = configureConvOptions<torch::nn::Conv3dOptions, 3>();
+            auto conv_layer = torch::nn::Conv3d(conv_options);
+            _c->getAuxModuleLayers()->push_back(conv_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
     template<typename IteratorT>
     void operator()(IteratorT first, IteratorT last) const
     {
-      if(_c->getAuxLayer() == "Conv1d"){
-        //_c->showParameters();
-        torch::nn::Conv1dOptions conv_options = torch::nn::Conv1dOptions(
-        /*in_channels=*/_c->getValueParametersLayer("in_channels"),  
-        /*out_channels=*/_c->getValueParametersLayer("out_channels"),
-        /*kernel_size=*/_c->getVectorValuesParametersLayer<1>("kernel_size"))
-        .stride(_c->getVectorValuesParametersLayer<1>("stride"))
-        .padding(_c->getVectorValuesParametersLayer<1>("padding"))
-        .dilation(_c->getVectorValuesParametersLayer<1>("dilation"))
-        .groups(_c->getValueParametersLayer("groups"))
-        .bias(_c->getValueParametersLayer("bias"))
-        .padding_mode(torch::kCircular);
-        //.output_padding(_c->getValueParametersLayer("output_padding"));
-        //.transposed(_c->getValueParametersLayer("transposed")); 
-
-        //(_c->getCurrentParameterValue()->getModule()).register_module("conv" + std::to_string(_c->getCurrentLayer()), torch::nn::Conv1d(conv_options));
-        _c->getAuxModuleLayers()->push_back(torch::nn::Conv1d(conv_options));        
-        
-        _c->IncCurrentLayer();
-      }
-      else if(_c->getAuxLayer() == "Conv2d"){
-        torch::nn::Conv2dOptions conv_options = torch::nn::Conv2dOptions(
-        /*in_channels=*/_c->getValueParametersLayer("in_channels"),  
-        /*out_channels=*/_c->getValueParametersLayer("out_channels"),
-        /*kernel_size=*/_c->getVectorValuesParametersLayer<2>("kernel_size"))
-        .stride(_c->getVectorValuesParametersLayer<2>("stride"))
-        .padding(_c->getVectorValuesParametersLayer<2>("padding"))
-        .dilation(_c->getVectorValuesParametersLayer<2>("dilation"))
-        .groups(_c->getValueParametersLayer("groups"))
-        .bias(_c->getValueParametersLayer("bias"))
-        .padding_mode(torch::kCircular);
-        //.output_padding(_c->getValueParametersLayer("output_padding"));
-        //.transposed(_c->getValueParametersLayer("transposed"));
-
-        //(_c->getCurrentParameterValue()->getModule()).register_module("conv" + std::to_string(_c->getCurrentLayer()), torch::nn::Conv2d(conv_options));
-        _c->getAuxModuleLayers()->push_back(torch::nn::Conv2d(conv_options));
-        
-        _c->IncCurrentLayer();
-      }
+      try {
+        const std::string& aux_layer = _c->getAuxLayer();
+        if (aux_layer == "Conv1d") {
+            createConv1dLayer();
+        } else if (aux_layer == "Conv2d") {
+            createConv2dLayer();
+        } else if (aux_layer == "Conv3d") {
+            createConv3dLayer();
+        } else {
+            throw std::runtime_error("Unsupported convolutional layer type: " + aux_layer);
+        }
+    } catch (const std::exception& e) {
+        // Handle exceptions appropriately
+        std::cerr << "Error creating layer: " << e.what() << std::endl;
+    }
     }
   private:
     ConfigurationReader * _c;
   };
+
+/*
+    CREATE AND ADD POOLING LAYERS
+*/
+  struct create_Pooling_layer {
+    create_Pooling_layer(ConfigurationReader* c) : _c(c) {}
+
+    template <typename OptionsType, int Dim>
+    OptionsType configurePoolOptions() const {
+        try {
+            OptionsType pool_options = OptionsType(
+                _c->getVectorValuesParametersLayer<Dim>("kernel_size"))
+                .stride(_c->getVectorValuesParametersLayer<Dim>("stride"))
+                .padding(_c->getVectorValuesParametersLayer<Dim>("padding"))
+                //.dilation(_c->getVectorValuesParametersLayer<Dim>("dilation"))
+                .ceil_mode(_c->getValueParametersLayer("ceil_mode"));
+                //.return_indices(_c->getValueParametersLayer("return_indices"));
+            return pool_options;
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Error configuring pooling options: " + std::string(e.what()));
+        }
+    }
+
+    void createMaxPool1dLayer() const {
+        if (_c->getAuxLayer() == "MaxPool1d") {
+            auto pool_options = configurePoolOptions<torch::nn::MaxPool1dOptions, 1>();
+            auto pool_layer = torch::nn::MaxPool1d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createMaxPool2dLayer() const {
+        if (_c->getAuxLayer() == "MaxPool2d") {
+            auto pool_options = configurePoolOptions<torch::nn::MaxPool2dOptions, 2>();
+            auto pool_layer = torch::nn::MaxPool2d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createMaxPool3dLayer() const {
+        if (_c->getAuxLayer() == "MaxPool3d") {
+            auto pool_options = configurePoolOptions<torch::nn::MaxPool3dOptions, 3>();
+            auto pool_layer = torch::nn::MaxPool3d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createAvgPool1dLayer() const {
+        if (_c->getAuxLayer() == "AvgPool1d") {
+            auto pool_options = configurePoolOptions<torch::nn::AvgPool1dOptions, 1>();
+            auto pool_layer = torch::nn::AvgPool1d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createAvgPool2dLayer() const {
+        if (_c->getAuxLayer() == "AvgPool2d") {
+            auto pool_options = configurePoolOptions<torch::nn::AvgPool2dOptions, 2>();
+            auto pool_layer = torch::nn::AvgPool2d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createAvgPool3dLayer() const {
+        if (_c->getAuxLayer() == "AvgPool3d") {
+            auto pool_options = configurePoolOptions<torch::nn::AvgPool3dOptions, 3>();
+            auto pool_layer = torch::nn::AvgPool3d(pool_options);
+            _c->getAuxModuleLayers()->push_back(pool_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    template <typename IteratorT>
+    void operator()(IteratorT first, IteratorT last) const {
+        try {
+            const std::string& aux_layer = _c->getAuxLayer();
+            if (aux_layer == "MaxPool1d") {
+                createMaxPool1dLayer();
+            } else if (aux_layer == "MaxPool2d") {
+                createMaxPool2dLayer();
+            } else if (aux_layer == "MaxPool3d") {
+                createMaxPool3dLayer();
+            } else if (aux_layer == "AvgPool1d") {
+                createAvgPool1dLayer();
+            } else if (aux_layer == "AvgPool2d") {
+                createAvgPool2dLayer();
+            } else if (aux_layer == "AvgPool3d") {
+                createAvgPool3dLayer();
+            } else {
+                throw std::runtime_error("Unsupported pooling layer type: " + aux_layer);
+            }
+        } catch (const std::exception& e) {
+            // Handle exceptions appropriately
+            std::cerr << "Error creating pooling layer: " << e.what() << std::endl;
+        }
+    }
+
+private:
+    ConfigurationReader* _c;
+};
+
+/*
+    CREATE AND ADD ACTIVATION LAYERS
+*/
+struct create_Activation_layer {
+    create_Activation_layer(ConfigurationReader* c) : _c(c) {}
+
+    void createReLULayer() const {
+        if (_c->getAuxLayer() == "ReLU()") {
+            auto activation_layer = torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true));
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createSigmoidLayer() const {
+        if (_c->getAuxLayer() == "Sigmoid()") {
+            auto activation_layer = torch::nn::Sigmoid();
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createTanhLayer() const {
+        if (_c->getAuxLayer() == "Tanh()") {
+            auto activation_layer = torch::nn::Tanh();
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createLeakyReLULayer() const {
+        if (_c->getAuxLayer() == "LeakyReLU()") {
+            auto activation_layer = torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().inplace(true));
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createELULayer() const {
+        if (_c->getAuxLayer() == "ELU()") {
+            auto activation_layer = torch::nn::ELU(torch::nn::ELUOptions().inplace(true));
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    void createSoftmaxLayer() const {
+        if (_c->getAuxLayer() == "Softmax()") {
+            auto activation_layer = torch::nn::Softmax(torch::nn::SoftmaxOptions(1));  // Specify the dimension
+            _c->getAuxModuleLayers()->push_back(activation_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    template <typename IteratorT>
+    void operator()(IteratorT first, IteratorT last) const {
+        try {
+            const std::string& aux_layer = _c->getAuxLayer();
+            if (aux_layer == "ReLU()") {
+                createReLULayer();
+            } else if (aux_layer == "Sigmoid()") {
+                createSigmoidLayer();
+            } else if (aux_layer == "Tanh()") {
+                createTanhLayer();
+            } else if (aux_layer == "LeakyReLU()") {
+                createLeakyReLULayer();
+            } else if (aux_layer == "ELU()") {
+                createELULayer();
+            } else if (aux_layer == "Softmax()" || aux_layer == "Softmax(dim=1)") {
+                createSoftmaxLayer();
+            } else {
+                throw std::runtime_error("Unsupported activation layer type: " + aux_layer);
+            }
+        } catch (const std::exception& e) {
+            // Handle exceptions appropriately
+            std::cerr << "Error creating activation layer: " << e.what() << std::endl;
+        }
+    }
+
+private:
+    ConfigurationReader* _c;
+};
+
+/*
+    CREATE AND ADD LINEAR LAYERS
+*/
+struct create_Linear_layer {
+    create_Linear_layer(ConfigurationReader* c) : _c(c) {}
+
+    void createLinearLayer() const {
+        if (_c->getAuxLayer() == "Linear") {
+            auto linear_layer = torch::nn::Linear(
+                _c->getValueParametersLayer("in_channels"),
+                _c->getValueParametersLayer("out_channels"));
+            _c->getAuxModuleLayers()->push_back(linear_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    template <typename IteratorT>
+    void operator()(IteratorT first, IteratorT last) const {
+        try {
+            const std::string& aux_layer = _c->getAuxLayer();
+            if (aux_layer == "Linear") {
+                createLinearLayer();
+            } else {
+                throw std::runtime_error("Unsupported linear layer type: " + aux_layer);
+            }
+        } catch (const std::exception& e) {
+            // Handle exceptions appropriately
+            std::cerr << "Error creating linear layer: " << e.what() << std::endl;
+        }
+    }
+
+private:
+    ConfigurationReader* _c;
+};
+
+/*
+    CREATE AND ADD DROPOUT LAYERS
+*/
+struct create_Dropout_layer {
+    create_Dropout_layer(ConfigurationReader* c) : _c(c) {}
+
+    void createDropoutLayer() const {
+        if (_c->getAuxLayer() == "Dropout") {
+            double dropout_prob = _c->getProbabilityValue();
+            if(dropout_prob < 0.0) dropout_prob = 0.5;
+            auto dropout_layer = torch::nn::Dropout(dropout_prob);
+            _c->getAuxModuleLayers()->push_back(dropout_layer);
+            _c->IncCurrentLayer();
+        }
+    }
+
+    template <typename IteratorT>
+    void operator()(IteratorT first, IteratorT last) const {
+        try {
+            const std::string& aux_layer = _c->getAuxLayer();
+            if (aux_layer == "Dropout") {
+                createDropoutLayer();
+            } else {
+                throw std::runtime_error("Unsupported dropout layer type: " + aux_layer);
+            }
+        } catch (const std::exception& e) {
+            // Handle exceptions appropriately
+            std::cerr << "Error creating dropout layer: " << e.what() << std::endl;
+        }
+    }
+
+private:
+    ConfigurationReader* _c;
+};
 
   /* Deep layer struct parsings */
 
@@ -665,7 +948,7 @@ struct PrintAction {
       layer_vector, layer_p, tuple_p,
 
       convolutional_layer, conv_creator, conv_parameters,
-      pooling_layer,
+      pooling_layer, pooling_creator, pooling_parameters,
       activation_layer,
       normalization_layer,
       recurrent_layer,
@@ -723,7 +1006,7 @@ struct PrintAction {
       (  (ch_p('|')  >> '"' >> ( *word_p ) [set_second_word(this)] >> '"' >> ':' )
          |
          ch_p(':')  ) [create_transition(this)]
-      >> real_p [add_prob(this)]
+      >> real_p [add_prob(this, false)]
 
       >> *( ch_p(';')
             >> '"'
@@ -733,7 +1016,7 @@ struct PrintAction {
             (  (ch_p('|')  >> '"' >> ( *word_p )[set_second_word(this)] >> '"' >> ':' )
                |
                ch_p(':')  )  [create_transition_entry(this)]
-            >> real_p [add_prob(this)] )
+            >> real_p [add_prob(this, false)] )
       >> !( ch_p(';') ) >> ')'
       ;
 
@@ -769,6 +1052,9 @@ struct PrintAction {
       >> ')'
       ;
 
+    /*
+      CONVOLUTIONAL LAYER
+    */
     /* e.g. Conv2d(100, 200, 4); Conv2d(100, 200, (4, 5)) */
 
     conv_creator
@@ -782,25 +1068,29 @@ struct PrintAction {
         ;
 
     conv_parameters
-      = ch_p('(') 
+      = ch_p('(')
                 >> int_p [push_back_a(_parameters_layer["in_channels"])] /* in_channels */ >> ','
                 >> int_p [push_back_a(_parameters_layer["out_channels"])] /* out_channels */ >> ','
-                >> (int_p [push_back_a(_parameters_layer["kernel_size"])]
+                >> * (str_p("kernel_size=")) >> (int_p [push_back_a(_parameters_layer["kernel_size"])]
                   | tuple_p [set_parameter_tuple(this)]) /* kernel_size */
-                >> * (',' >> word_p [set_optional_parameter_name(this)] 
-                          >> '=' 
+                >> * (',' >> word_p [set_optional_parameter_name(this)]
+                          >> '='
                           >> (int_p [set_int_layer_optional_parameter(this)]
                             | tuple_p [set_parameter_tuple(this)] ) /* optional parameter */ )
       >> ')'
       ;
 
     convolutional_layer
-      = conv_creator 
+      = conv_creator
       >> conv_parameters
       ;
 
-    /* e.g. MaxPool1d(100, 200, 4); MaxPool1d(100, 200, (4, 5)) */
-    pooling_layer
+    /*
+      POOLING LAYER
+    */
+    /* e.g. MaxPool1d(100, 200, 4); MaxPool2d(100, 200, (4, 5)) */
+
+    pooling_creator
       = ( str_p("MaxPool1d")
         | str_p("MaxPool2d")
         | str_p("MaxPool3d")
@@ -813,26 +1103,80 @@ struct PrintAction {
         | str_p("AvgUnpool1d")
         | str_p("AvgUnpool2d")
         | str_p("AvgUnpool3d")
-        )
-      >> ch_p('(')
-                >> int_p /* in_channels */ >> ','
-                >> int_p /* out_channels */ >> ','
-                >> (int_p | tuple_p) /* kernel_size */
+        )[start_new_layer(this)]
+      ;
+
+    pooling_parameters
+      = ch_p('(')
+                >> * (str_p("kernel_size=")) >> (int_p [push_back_a(_parameters_layer["kernel_size"])]
+                  | tuple_p [set_parameter_tuple(this)]) /* kernel_size */
+                >> * (',' >> word_p [set_optional_parameter_name(this)]
+                          >> '='
+                          >> (int_p [set_int_layer_optional_parameter(this)]
+                            | tuple_p [set_parameter_tuple(this)] ) /* optional parameter */ )
       >> ')'
+      ;
+
+    pooling_layer
+      = pooling_creator
+      >> pooling_parameters
+      ;
+
+    /*
+      ACTIVATION LAYER
+    */
+    /* e.g. ReLU, Sigmoid, Tanh, LeakyReLU, ELU, and Softmax */
+
+    activation_layer
+      = ( str_p("ReLU()")
+        | str_p("Sigmoid()")
+        | str_p("Tanh()")
+        | str_p("LeakyReLU()")
+        | str_p("ELU()")
+        | str_p("Softmax(") >> *(str_p("dim=1")) >> ')'
+        )[start_new_layer(this)]
+      ;
+
+    /*
+      LINEAR LAYER
+    */
+    /* e.g. Linear(20, 30) */
+
+    linear_layer
+      = (str_p("Linear"))[start_new_layer(this)]
+      >> ch_p('(')
+                >> * (str_p("in_features=")) >> int_p [push_back_a(_parameters_layer["in_channels"])] /* in_channels */ >> ','
+                >> * (str_p("out_features=")) >> int_p [push_back_a(_parameters_layer["out_channels"])] /* out_channels */
+                >> * (',' >> word_p [set_optional_parameter_name(this)]
+                          >> '='
+                          >> (int_p [set_int_layer_optional_parameter(this)]) /* optional parameter (bias) */ )
+      >> ')'
+      ;
+
+    /*
+      LINEAR LAYER
+    */
+    /* e.g. Linear(20, 30) */
+
+    dropout_layer
+      = (str_p("Dropout"))[start_new_layer(this)]
+      >> ch_p('(')
+                >> * (str_p("p=")) >> real_p [add_prob(this, true)] /* probability */
+      >> * (',' >> str_p("inplace=") >> int_p [push_back_a(_parameters_layer["inplace"])]) >> ')'
       ;
 
     layer_p /* kind of layer */
       = convolutional_layer[create_Convolution_layer(this)]
-      | pooling_layer
-      //| activation_layer
+      | pooling_layer[create_Pooling_layer(this)]
+      | activation_layer[create_Activation_layer(this)]
       //| normalization_layer
       //| recurrent_layer
-      //| linear_layer
-      //| dropout_layer
+      | linear_layer[create_Linear_layer(this)]
+      | dropout_layer[create_Dropout_layer(this)]
       ;
 
     layer_vector /* list of layers */
-      = ch_p('(') 
+      = ch_p('(')
       >> layer_p
       >> * ( ',' >> layer_p )
       >> ')'
@@ -1008,6 +1352,13 @@ struct PrintAction {
     return (_parameters_layer[parameter])[0];
   }
 
+  void ConfigurationReader::setProbabilityValue(double value){
+    probability_aux = value;
+  }
+  double ConfigurationReader::getProbabilityValue(){
+    return probability_aux;
+  }
+
   void ConfigurationReader::setNewOptionalParameterLayer(const std::string & parameter){
     _parameters_layer[parameter] = {};
   }
@@ -1042,17 +1393,21 @@ struct PrintAction {
     _aux_parameters_values = {};
   }
 
-  torch::nn::Sequential ConfigurationReader::getAuxModuleLayers(){     
+  torch::nn::Sequential ConfigurationReader::getAuxModuleLayers(){
     return _aux_module_layers;
   }
 
-  void ConfigurationReader::showParameters(){
+  void ConfigurationReader::showParameters()
+  {
     std::cerr << "--------------------------\n";
-    for (auto const& entry : _parameters_layer){
-      std::cerr << "\n" << entry.first << ": \n";
-      for (size_t i = 0; i < (entry.second).size(); i++){
+    for (auto const &entry : _parameters_layer)
+    {
+      std::cerr << "\n"
+                << entry.first << ": \n";
+      for (size_t i = 0; i < (entry.second).size(); i++)
+      {
         std::cerr << (entry.second)[i] << ", ";
-      }      
+      }
     }
     std::cerr << "--------------------------\n";
   }
@@ -1070,6 +1425,7 @@ struct PrintAction {
     _aux_parameter_name = "";
     _aux_parameters_values = {};
     _ptr_aux_module_layers = std::make_shared<torch::nn::Sequential>(_aux_module_layers);
+    probability_aux = -1.0;
     setParametersLayer();
   }
 };

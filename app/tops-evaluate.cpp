@@ -92,25 +92,25 @@ int main (int argc, char ** argv)
 
       map<std::string,std::string>::const_iterator it;
       AlphabetPtr alphabet;
-      alphabet = m->alphabet();
-      std::cout << "alphabet: " << alphabet->str() << std::endl;
+      alphabet = m->alphabet();      
 
       SequenceEntry entry(alphabet);
       while(!cin.eof()) {
         cin >> entry;
-        std::cout << "entry: " << entry << std::endl;
+        //std::cout << "entry: " << entry << std::endl;
         Sequence s = entry.getSequence();
         if(s.size() == 0)
           continue;        
-        double prob =  m->evaluate(s, 0, s.size() -1, phase);
+        //double prob =  m->evaluate(s, 0, s.size(), phase);
+        double prob =  m->evaluatePosition(s, 301, phase); //301-1
 
-#if 0
+#if 1
   m->initialize_prefix_sum_array(s,0);
   double prob2 = m->prefix_sum_array_compute(0, s.size()-1,0);
-        std::cout << entry.getName() << "\t"
+  std::cout << entry.getName() << "\t"
             << exp(prob) << " " << exp(prob2) <<std::endl;
 #else
-        std::cout << entry.getName() << "\t"
+  std::cout << entry.getName() << "\t"
             << prob << std::endl;
 #endif
       }

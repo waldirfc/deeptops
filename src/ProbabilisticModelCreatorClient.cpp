@@ -69,6 +69,8 @@
 #include "RemoveSequenceFromModel.hpp"
 #include "SequenceFormat.hpp"
 
+#include "TrainNeuralNetwork.hpp"
+
 #include "ToPSLang.hpp"
 
 namespace tops
@@ -324,8 +326,8 @@ namespace tops
     _createModelCommand["MaximalDependenceDecomposition"] =
       MaximalDependenceDecompositionCreatorPtr(new MaximalDependenceDecompositionCreator());
 
-    _createModelCommand["NeuralNetworkModel"] =
-      NeuralNetworkModelCreatorPtr(new NeuralNetworkModelCreator());
+    _createModelCommand["NeuralNetworkModel"] = NeuralNetworkModelCreatorPtr(new NeuralNetworkModelCreator());
+    _trainingCommand["SGDNeuralNetwork"] = TrainNeuralNetworkPtr(new TrainNeuralNetwork());
 
   }
 }

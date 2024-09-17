@@ -45,9 +45,18 @@ namespace tops {
 
   private:
     torch::nn::Sequential _module_nn; /*!< Sequential layers to train */    
-    torch::jit::script::Module _trained_module_nn; /*!< Layers (not necessarely sequential) that were trained beforehand */
+    torch::jit::script::Module _trained_module_nn; /*!< Layers (not necessarely sequential) that were trained beforehand */    
     std::string _trained_model_file;
-    int _sequence_length;
+    
+    int _sequence_length; // it will be the sum of upstream and downstream
+    int _upstream_length;
+    int _downstream_length;
+    
+    //! others
+    torch::jit::script::Module* non_const_jit_module;
+    torch::Tensor _last_sequence;
+    DoubleVector _scores;
+    bool _initialized = false;
   public:
     
     //! Constructor.
@@ -85,13 +94,13 @@ namespace tops {
     //! Set the probability value of the number s
     //virtual double log_probability_of(int s, double new_value) ;
 
-    //virtual double evaluatePosition(const Sequence & s, unsigned int i) const ;
+    
 
     //virtual double log_probability_of_pair(int s1, int s2, double new_value);
 
     //virtual double choosePosition(const Sequence & s, int i )const ;
 
-    
+    virtual std::string print_graph () const ;
     
     virtual std::string model_name() const {
       return "Neural Network Model";
@@ -108,7 +117,7 @@ namespace tops {
 
     virtual ProbabilisticModelParameters parameters() const;
 
-    void setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr, std::string trained_model_file, int sequence_length) ;
+    void setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr, std::string trained_model_file, int upstream_length, int downstream_length) ;
 
     // Transform a list of sequences into Tensor data
     torch::Tensor sequences_to_Tensor(SequenceList & sample) const;
@@ -117,8 +126,13 @@ namespace tops {
     virtual double trainSGDAlgorithm(SequenceList & training_set, int epochs, int batch_size, double learning_rate);
 
     // Evaluates a Sequence
-    //virtual double evaluate(Sequence & s, unsigned int begin, unsigned int end);
-    virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end);
+    // does it make sense to have evaluate for Neural Network class? it is the likelihood of the sequence, perhaps this model does not need it
+    //virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end) const;
+    virtual double evaluatePosition(const Sequence & s, unsigned int i) const ;
+
+    virtual std::vector<int> classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, torch::Device device);
+    virtual bool initialize_prefix_sum_array(const Sequence & s);
+    virtual double prefix_sum_array_compute(int begin , int end);
   };
 
   typedef boost::shared_ptr<NeuralNetworkModel> NeuralNetworkModelPtr;

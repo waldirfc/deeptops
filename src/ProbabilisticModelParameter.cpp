@@ -421,7 +421,42 @@ namespace tops {
 
   std::string ModuleParameterValue::str() const {
     std::stringstream out;
-    out << _nn ;
+    //out << _nn ;
+    out << "(\n";
+        
+        //std::cout << "layers size: " << _module_nn->size() << std::endl;
+
+        for(size_t i = 0; i < _nn->size(); ++i) {
+            const std::shared_ptr<torch::nn::Module>& module_ptr = _nn->ptr(i);            
+            std::stringstream auxss;
+            module_ptr->pretty_print(auxss);
+            std::string aux_str =  auxss.str().substr(11);
+            for (int i = 0; i < aux_str.length(); i++) {
+                if(aux_str[i] == '[') aux_str[i] = '(';
+                else if(aux_str[i] == ']') aux_str[i] = ')';
+                else if(aux_str[i] == '=') {
+                    size_t start = ++i; // Move past '=' and store the start position
+                    size_t _l = 0;
+                    while (i < aux_str.length() && std::isalpha(aux_str[i])) {
+                        ++_l;
+                        ++i;
+                    }
+                    if (_l == 4) {
+                        aux_str.replace(start, _l, "1");
+                        i = start; // Adjust 'i' after replacement
+                    } else if (_l > 4) {
+                        aux_str.replace(start, _l, "0");
+                        i = start; // Adjust 'i' after replacement
+                    }
+                    --i;
+                }
+            }            
+            out << aux_str;
+            if(i < _nn->size() - 1) out << ",";
+            out << "\n";
+        }
+        out << ")\n";
+
     return out.str();
   }
 }

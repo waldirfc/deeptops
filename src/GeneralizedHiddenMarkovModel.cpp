@@ -92,7 +92,7 @@ namespace tops {
           if (m == NULL) {
             std::cerr << "Can not load model " << cfg << "! " << std::endl;
             return;
-          }          
+          }
 
           _models[model_name] = m;
     }

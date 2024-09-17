@@ -33,47 +33,60 @@ namespace tops {
 
     NeuralNetworkModel::NeuralNetworkModel(){
         _trained_model_file = "";
+        _initialized = false;
     }
 
     NeuralNetworkModel::NeuralNetworkModel(std::shared_ptr<torch::nn::Sequential> module_nn_ptr){
         _module_nn = *module_nn_ptr;
         _trained_model_file = "";
+        _initialized = false;
     }
 
     NeuralNetworkModel::NeuralNetworkModel(std::string trained_model_file){
         _trained_model_file = trained_model_file;
+        _initialized = false;
     }
 
     // ToDo: UPDATE to be the same as the config file.
     std::string NeuralNetworkModel::str () const {
         std::stringstream out;
         out << "model_name = \"NeuralNetworkModel\"\n" ;
-        out << "layers = (\n";
+        out << "layers = ";
         
-        //std::cout << "layers size: " << _module_nn->size() << std::endl;
+        ModuleParameterValuePtr architecture = ModuleParameterValuePtr(new ModuleParameterValue(std::make_shared<torch::nn::Sequential>(_module_nn)));
+        out << architecture->str();        
 
-        for(size_t i = 0; i < _module_nn->size(); ++i) {
-            const std::shared_ptr<torch::nn::Module>& module_ptr = _module_nn->ptr(i);            
-            module_ptr->pretty_print(out);
-            out << "\n";
-        }
-        out << ")\n";
-
-        out << "sequence length = \"" << _sequence_length << "\"\n";
+        out << "upstream_length = " << _upstream_length << "\n";
+        out << "downstream_length = " << _downstream_length << "\n";
         out << "trained_model_file = \"" << _trained_model_file << "\"\n";        
         
         return out.str();
     }
 
-    void NeuralNetworkModel::setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr, std::string trained_model_file, int sequence_length) {
+    std::string NeuralNetworkModel::print_graph () const {
+        return this->str();
+    }
+
+    void NeuralNetworkModel::setParameters(std::shared_ptr<torch::nn::Sequential> module_nn_ptr, std::string trained_model_file, int upstream_length, int downstream_length) {
         _module_nn = *module_nn_ptr;
         _trained_model_file = trained_model_file;
-        _sequence_length = sequence_length;
+        _upstream_length = upstream_length;
+        _downstream_length = downstream_length;
+        _sequence_length = _upstream_length + _downstream_length;
+        _initialized = false;
 
         if (_trained_model_file != ""){ //there is a trained model in jit format
             try {
-                // Deserialize the ScriptModule from a file using torch::jit::load()
+                // Deserialize the ScriptModule from a file using torch::jit::load()                
                 _trained_module_nn = torch::jit::load(_trained_model_file);
+                _trained_module_nn.eval();
+                non_const_jit_module = const_cast<torch::jit::script::Module*>(&_trained_module_nn);
+                
+                torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+        
+                //std::cout << "1. Initialize prefix NN " << (torch::cuda::is_available() ? "torch::kCUDA\n" : "torch::kCPU\n");
+                non_const_jit_module->to(device);
+                non_const_jit_module->eval();
             }
             catch (const c10::Error& e) {
                 std::cerr << "error loading the trained model\n";
@@ -90,14 +103,16 @@ namespace tops {
         //ProbabilisticModelParameterValuePtr weight = p.getMandatoryParameterValue("weight");
         //ProbabilisticModelParameterValuePtr bias = p.getMandatoryParameterValue("bias");
         ProbabilisticModelParameterValuePtr module_nn_ptr = p.getMandatoryParameterValue("layers");
-        ProbabilisticModelParameterValuePtr sequence_length_p = p.getMandatoryParameterValue("sequence_length");
+        ProbabilisticModelParameterValuePtr upstream_length_p = p.getMandatoryParameterValue("upstream_length");
+        ProbabilisticModelParameterValuePtr downstream_length_p = p.getMandatoryParameterValue("downstream_length");
         ProbabilisticModelParameterValuePtr model_file = p.getOptionalParameterValue("trained_model_file");
         ProbabilisticModelParameterValuePtr symbols = p.getOptionalParameterValue("alphabet");
 
         // load a trained model if it is present                
         std::shared_ptr<torch::nn::Sequential> module_nn = module_nn_ptr->getModule();
         
-        int sequence_length = sequence_length_p->getInt();
+        int upstream_length = upstream_length_p->getInt();
+        int downstream_length = downstream_length_p->getInt();
         std::string trained_model_file = "";
         if (model_file != NULL) trained_model_file = model_file->getString();
         
@@ -105,7 +120,7 @@ namespace tops {
         alphabet->initializeFromVector(symbols->getStringVector());
         setAlphabet(alphabet);
 
-        setParameters(module_nn, trained_model_file, sequence_length);
+        setParameters(module_nn, trained_model_file, upstream_length, downstream_length);
     }
 
     ProbabilisticModelParameters NeuralNetworkModel::parameters () const {
@@ -114,7 +129,8 @@ namespace tops {
         par.add("model_name", StringParameterValuePtr(new StringParameterValue("NeuralNetworkModel")));
         auto module_nn = std::make_shared<torch::nn::Sequential>(_module_nn);
         par.add("layers", ModuleParameterValuePtr(new ModuleParameterValue(module_nn)));
-        par.add("sequence_length", IntParameterValuePtr(new IntParameterValue(_sequence_length)));
+        par.add("upstream_length", IntParameterValuePtr(new IntParameterValue(_upstream_length)));
+        par.add("downstream_length", IntParameterValuePtr(new IntParameterValue(_downstream_length)));
         if (_trained_model_file != "") par.add("trained_model_file", StringParameterValuePtr(new StringParameterValue(_trained_model_file)));
         return par;
     }
@@ -130,9 +146,12 @@ namespace tops {
 
         // Step 2: Convert the flat vector to a torch::Tensor
         torch::Tensor tensor_data = torch::from_blob(flat_data.data(), {input_data.size(), input_data[0].size()}, torch::kInt);
+        tensor_data = tensor_data.to(torch::kLong);
 
-        // Step 3: Find the maximum value in the tensor to determine the number of classes
-        int num_classes = tensor_data.max().item<int>() + 1; // Assuming classes are zero-indexed
+        // Step 3: Find the maximum value in the tensor to determine the number of classes        
+        //int num_classes = tensor_data.max().item<int>() + 1; // Assuming classes are zero-indexed
+        // It can be also the length of the Alphabet
+        int num_classes = alphabet()->size();
 
         // Step 4: Convert the tensor to a one-hot encoded tensor
         torch::Tensor one_hot_tensor = torch::one_hot(tensor_data, num_classes);
@@ -199,45 +218,213 @@ namespace tops {
         return loss_value;
     }
 
-    // \@begin should be 0 and @end should be the same as sequence_length
-    double NeuralNetworkModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end)  {
-        std::cout << "seq size: " << s.size() << std::endl;
-        if(s.size() == _sequence_length){
-            //std::vector<std::vector<int> > input;
-            //input.push_back(s);
-            //torch::Tensor input_t = sequences_to_Tensor(input);
-            // Step 1: Extract the subsequence
-            Sequence subsequence(s.begin() + begin, s.begin() + end);
+    // size of \@s should be bigger or equal than sequence_length
+    double NeuralNetworkModel::evaluatePosition(const Sequence & s, unsigned int i) const {        
+        if(s.size() >= _sequence_length){
+            try {
+            
+                torch::Tensor input_t;
+                if(!_initialized){
+                    // Create (copy) the subsequence
+                    Sequence subsequence(s.begin() + (i - _upstream_length), s.begin() + (i + _downstream_length));                    
 
-            // Step 2: Create a SequenceList from the subsequence
-            SequenceList sample = {subsequence};
+                    // Create a SequenceList from the subsequence
+                    SequenceList sample = {subsequence};
 
-            // Step 3: Convert the SequenceList to a torch::Tensor using sequences_to_Tensor
-            // As sequences_to_Tensor is a non-const function, cast away the constness
-            //auto non_const_this = const_cast<NeuralNetworkModel*>(this);
-            //torch::Tensor input_t = non_const_this->sequences_to_Tensor(sample);
-            torch::Tensor input_t = sequences_to_Tensor(sample);
+                    // Convert the SequenceList to a torch::Tensor using sequences_to_Tensor
+                    input_t = sequences_to_Tensor(sample);
+                }
+                else{
+                    // Extract the specified column range (inclusive)
+                    input_t = _last_sequence.slice(1, i - _upstream_length, i + _downstream_length);
+                }
 
-            // Step 4: Pass the tensor to the model's forward function
-            std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(input_t);
-
-            // Make sure the module is not null and has been loaded correctly
-            assert(_trained_module_nn);
-            //auto non_const_this_module = const_cast<torch::jit::Module*>(_trained_module_nn);
-
-            std::cout << "one-hot: " << input_t.sizes() << std::endl;
-            torch::Tensor output = _trained_module_nn.forward({input_t}).toTensor();
-            // Convert each element to double
-            double value1 = output[0].item<double>();
-            double value2 = output[1].item<double>();
-            if(value1 > value2) return value1;
-            else return value2;
+                // Make sure the module is not null and has been loaded correctly
+                // assert(_trained_module_nn);                
+                torch::Tensor output = non_const_jit_module->forward({input_t}).toTensor();
+                
+                torch::Tensor max_value_tensor = output.max();                
+                torch::Tensor probs = torch::softmax(output, 1);
+                std::cout << "evaluate_position" << i << "\n\toutput: (" << output << ")\n\tprobability: (" << probs << ")" << std::endl;
+                return log((probs.select(1, 1)).item<double>());
+            }
+            catch (const c10::Error& e) {
+                std::cerr << "error evaluating the position of the sequence in the model\n";
+                return log(0.0);
+            }
         }
-        else {
-            std::cerr << "Invalid length sequence" << std::endl;
+        else {            
+            std::cerr << "Invalid sequence length evaluating" << std::endl;
             return 0.0;
         }
+    }
+
+    // \@begin should be 0 and @end should be the same as sequence_length (where sequence_length is the sum of upstream and downstream)
+    // ?? CHECK: evaluate is the sequence likelihood given this model ??
+    /*double NeuralNetworkModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end) const {        
+        if((end - begin) == _sequence_length){
+            try {
+            
+                torch::Tensor input_t;
+                if(!_initialized){
+                    // Create (copy) the subsequence
+                    Sequence subsequence(s.begin() + begin, s.begin() + end);
+
+                    // Create a SequenceList from the subsequence
+                    SequenceList sample = {subsequence};
+
+                    // Convert the SequenceList to a torch::Tensor using sequences_to_Tensor
+                    input_t = sequences_to_Tensor(sample);
+                }
+                else{
+                    // Extract the specified column range (inclusive)
+                    input_t = _last_sequence.slice(1, begin, end);
+                }
+
+                // Make sure the module is not null and has been loaded correctly
+                // assert(_trained_module_nn);                
+                torch::Tensor output = non_const_jit_module->forward({input_t}).toTensor();
+                
+                torch::Tensor max_value_tensor = output.max();                
+                torch::Tensor probs = torch::softmax(output, 1);
+                std::cout << "output: (" << output << ")\nprobability: (" << probs << ")" << std::endl;
+                return (probs.select(1, 1)).item<double>();
+                
+            }
+            catch (const c10::Error& e) {
+                std::cerr << "error evaluating the sequence in the model\n";
+                return 0.0;
+            }
+        }
+        else {            
+            std::cerr << "Invalid sequence length evaluating" << std::endl;
+            return 0.0;
+        }
+    }*/
+
+    std::vector<torch::Tensor> split_sequence(const torch::Tensor& one_hot_sequence, int subseq_size, int stride) {
+        std::vector<torch::Tensor> subsequences;
+
+        // Get the length of the sequence from the second dimension
+        int len = one_hot_sequence.size(0);
+
+        for (int i = 0; i <= len - subseq_size; i += stride) {
+            // Slice the tensor to get the subsequence
+            torch::Tensor subseq = one_hot_sequence.slice(0, i, i + subseq_size);
+            subsequences.push_back(subseq);
+        }
+
+        return subsequences;
+    }
+
+    // Function to stack the subsequences into a single tensor
+    torch::Tensor stack_subsequences(const std::vector<torch::Tensor>& subsequences) {
+        // Stack the subsequences into a single tensor
+        return torch::stack(subsequences);
+    }
+
+    // Classify each subsequence in batches and measure time
+    std::vector<int> NeuralNetworkModel::classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, torch::Device device) {
+        std::vector<int> predictions;
+        auto start = std::chrono::high_resolution_clock::now();
+
+        int num_batches = (stacked_subsequences.size(0) + batch_size - 1) / batch_size;
+        for (int batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
+            int64_t start_idx = batch_idx * batch_size;
+            int64_t end_idx = std::min(start_idx + static_cast<int64_t>(batch_size), stacked_subsequences.size(0));
+
+            torch::Tensor batch_tensor = stacked_subsequences.slice(0, start_idx, end_idx).to(device);
+
+            auto outputs = _trained_module_nn.forward({batch_tensor}).toTensor();
+            auto predicted = std::get<1>(outputs.max(1)).cpu();
+
+            torch::Tensor probs = torch::softmax(outputs, 1);
+            auto probs_max = std::get<1>(probs.max(1)).cpu();
+            //std::cout << "subsequences\n\toutput: (" << outputs << ")\n\tprobability: (" << probs << ")" << std::endl;
+
+            for (int i = 0; i < predicted.size(0); ++i) {
+                predictions.push_back(predicted[i].item<int>());
+                _scores.push_back(log(probs_max[i].item<int>()));
+            }
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> total_time = end - start;
+        std::cout << "Total time for predictions: " << total_time.count() << " seconds" << std::endl;
+
+        return predictions;
+    }
+
+    bool NeuralNetworkModel::initialize_prefix_sum_array(const Sequence & s){
+        //when we evaluate more than one input, it is more efficient to send all the inputs as a "bathch"
+        //so we need to override the initialize_prefix_sum_array
+        //instead of usint the superclass method that calls evaluate() for each position of the sequence
+        //we one-hot encode the whole sequence and generate all sequences from the sliding window as a batch
+        //evaluation will be much faster as it will fully use pythorch's paralellism
+        
+        _scores.resize(s.size());
+        if(s.size() < _sequence_length){ // Do not initialize if the sequence is shorter than the input of the network
+            std::cerr << "Invalid sequence length initializing\n";
+            _initialized = false;
+            return false;
+        }
+        
+        _scores = {};
+
+        // initialize a Tensor for the whole sequence        
+        SequenceList sample = {s};
+        _last_sequence = sequences_to_Tensor(sample);
+        // Remove the dimension of size 1
+        auto tensor_squeezed = _last_sequence.squeeze(0);
+
+        //std::cout << "last_seq: " << _last_sequence.sizes() << std::endl;
+        //std::cout << "last_seq_squeezed: " << tensor_squeezed.sizes() << std::endl;
+        
+        auto _subsequences = split_sequence(tensor_squeezed, _sequence_length, 1);
+        // Stack the subsequences into a single tensor
+        torch::Tensor stacked_subsequences = stack_subsequences(_subsequences);
+
+       
+        std::cout << "subseq size: " << _subsequences.size() << std::endl;
+        //std::cout << "tensor_subseq: " << stacked_subsequences.sizes() << std::endl;
+        
+        // Classify each subsequence in batches
+        torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+        int batch_size = 64;
+        std::vector<int> predictions = classify_subsequences_in_batches(stacked_subsequences, batch_size, device);
+        //_scores.push_back(predictions);
+        
+        
+        //std::cout << "predictions:\n";
+        //for (int i=0; i<predictions.size(); i++) std::cout << predictions[i] << "\n";        
+        //std::cout << "scores:\n";        
+        std::cout << "[INFO] " << _trained_model_file << " found:\n";
+        int ss_count = 1;
+        for (int i=0; i<_scores.size(); i++){
+            if (predictions[i]){
+                std::cout << "#" << ss_count++ << "\t" << i + _upstream_length << "\t" << exp(_scores[i]) << "\t";
+                int step = -6;
+                for(; step < -1; step++){
+                    std::cout << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
+                }
+                std::cout << "[" << alphabet()->getSymbol(s[i+_upstream_length-1])->name() << alphabet()->getSymbol(s[i+_upstream_length])->name() << "]";
+                for(step=1; step <= 5; step++){
+                    std::cout << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
+                }
+                std::cout << std::endl;
+            }
+        }
+        std::cout << std::endl;
+        
+        _initialized = true;
+        return true;
+    }
+
+    double NeuralNetworkModel::prefix_sum_array_compute(int begin , int end) {
+        //return evaluate(_last, begin, end);
+        if ((begin < (int) _scores.size()) && (begin >= 0) && _initialized)
+            return _scores[begin];
+        return -HUGE;
     }
 
     double NeuralNetworkModel::choose() const {

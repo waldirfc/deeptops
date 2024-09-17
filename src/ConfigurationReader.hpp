@@ -97,6 +97,9 @@ namespace tops {
     vector<int> getAuxParametersValues();
     void resetAuxParametersValues();
     
+    void setProbabilityValue(double value);
+    double getProbabilityValue();
+
     //std::shared_ptr<torch::nn::Sequential> getAuxModuleLayers();
     torch::nn::Sequential getAuxModuleLayers();
 
@@ -119,6 +122,7 @@ namespace tops {
     torch::nn::Sequential _aux_module_layers;
     std::shared_ptr<torch::nn::Sequential> _ptr_aux_module_layers;
     map<std::string, vector<int>> _parameters_layer;
+    double probability_aux;
   };
 
 }

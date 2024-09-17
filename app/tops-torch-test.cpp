@@ -599,52 +599,56 @@ auto get_cuda_device(const int number) -> std::string
 
 int main (int argc, char* argv[]) {
     
-    if (argc != 3) {
+    /*{
+      if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <name> <mode>" << std::endl;
         return 1;
-    }
+      }
 
-    std::string name = argv[1];
-    std::string mode = argv[2];
+      std::string name = argv[1];
+      std::string mode = argv[2];
 
-    /*auto device_string = get_cuda_device(2);
-    std::cout << "GPU: " << device_string << std::endl;
-    torch::Device device(device_string);*/
+      //auto device_string = get_cuda_device(2);
+      //std::cout << "GPU: " << device_string << std::endl;
+      //torch::Device device(device_string);
 
-    std::string seq = "acceptor";
-    std::vector<std::string> dataorg_list = {"hs"};
+      std::string seq = "acceptor";
+      std::vector<std::string> dataorg_list = {"hs"};
 
-    for (const auto& dataorg : dataorg_list) {
-        std::string data_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg;
-        std::string labels_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg + "_lbl";
-        training_process(data_path, labels_path, seq, dataorg);
-    }
+      for (const auto& dataorg : dataorg_list) {
+          std::string data_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg;
+          std::string labels_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg + "_lbl";
+          training_process(data_path, labels_path, seq, dataorg);
+      }
 
-    std::cout << "======================" << std::endl;
-    std::cout << "Start Donor Convolution" << std::endl;
+      std::cout << "======================" << std::endl;
+      std::cout << "Start Donor Convolution" << std::endl;
 
-    seq = "donor";
-    for (const auto& dataorg : dataorg_list) {
-        std::string data_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg;
-        std::string labels_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg + "_lbl";
-        training_process(data_path, labels_path, seq, dataorg);
-    }
-
-    return 0;
+      seq = "donor";
+      for (const auto& dataorg : dataorg_list) {
+          std::string data_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg;
+          std::string labels_path = "./../pytorchTests/CNNSplice/data/" + mode + "/" + dataorg + "/train_" + seq + "_" + dataorg + "_lbl";
+          training_process(data_path, labels_path, seq, dataorg);
+      }
+    }*/
+    
 
     /*
     ------------------------------------------------------------------------------------------
     */
 
-    /*srand(time(NULL));
+    srand(time(NULL));
 
     {
-      std::string filepath = "CNNSplice_modelHS_jit_python.pt";
+      std::string filepath = "";
+      // /home/waldir/Documents/deeptops/examples/neuralnetwork/acceptor_cnnsplice_hs_jit.pth
+      std::cin >> filepath;
       torch::jit::script::Module module;
       try {
         // Deserialize the ScriptModule from a file using torch::jit::load().
+        std::cout << filepath << " ...\n";
         module = torch::jit::load(filepath);
-        
+        std::cout << filepath << " OK\n";
         auto input_data = torch::randn({1, 400, 4});
         //auto ivalue = torch::jit::IValue(input_data);
         //std::vector<torch::jit::IValue> input;
@@ -665,10 +669,11 @@ int main (int argc, char* argv[]) {
       }
       catch (const c10::Error& e) {
         std::cerr << "error loading the model\n";
+        std::cout << e.msg() << std::endl;
         return -1;
       }
       
-    }*/    
+    }
 
     /*
     ------------------------------------------------------------------------------------------

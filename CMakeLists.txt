@@ -2,7 +2,8 @@ project(ToPS)
 cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(Boost_USE_STATIC_LIBS ON)
+#set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS OFF) # allows to use recent versions of boost
 find_package(Boost 1.50 COMPONENTS regex REQUIRED)
 find_package(Boost 1.50 COMPONENTS program_options REQUIRED)
 find_package(Boost 1.50 COMPONENTS date_time REQUIRED)
@@ -12,7 +13,7 @@ find_package(Boost 1.50 COMPONENTS filesystem REQUIRED)
 find_package(Boost REQUIRED chrono)
 
 # LIBTORCH package
-set(CMAKE_PREFIX_PATH "/home/waldir/libtorch")
+set(CMAKE_PREFIX_PATH "~/libtorch")
 find_package(Torch REQUIRED)
 include_directories(${TORCH_INCLUDE_DIRS})
 
@@ -25,6 +26,7 @@ ENDIF()
 # Find_package(PerlLibs)
 # ADD_DEFINITIONS("-O0 -Wall -gdwarf-2")
 add_definitions("-Ofast -funroll-loops -ffast-math")
+add_definitions(-DBOOST_TIMER_ENABLE_DEPRECATED) # in the future replace boost/timer with <chrono>
 
 if(UNIX)
   set(BOOST_REGEX_LIBRARY ${Boost_REGEX_LIBRARY})

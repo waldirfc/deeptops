@@ -65,7 +65,7 @@ using namespace std;
 using namespace boost::program_options;
 
 int main(int argc, char ** argv) {
-
+        
         options_description desc("Allowed options");
         desc.add_options()
           ("help,h", "produce help message")
@@ -128,6 +128,7 @@ int main(int argc, char ** argv) {
 
         decoratorCommand["RemoveSequence"] = RemoveSequenceFromModelPtr(new RemoveSequenceFromModel());
         try {
+                
                 variables_map vm;
                 store(parse_command_line(argc, argv, desc), vm);
                 notify(vm);
@@ -146,7 +147,7 @@ int main(int argc, char ** argv) {
                   exit(0);
                   return 1;
                 }
-
+                
                 if (vm.count("configuration")) {
                         string file = vm["configuration"].as<string> ();
                         ConfigurationReader readConfig;
@@ -166,8 +167,9 @@ int main(int argc, char ** argv) {
                                 conf.append(line);
                         }
                         input.close();
+                        
                         if (readConfig.load(conf)) {
-
+                                
                                 ProbabilisticModelParameterValuePtr create_model =
                                   (readConfig.parameters())->getMandatoryParameterValue(
                                                                 "training_algorithm");
@@ -184,6 +186,7 @@ int main(int argc, char ** argv) {
                                 }
 
                                 string command = create_model->getString();
+                                
 
                                 ProbabilisticModelCreatorPtr creator;
                                 if (createModelCommand.find(command)

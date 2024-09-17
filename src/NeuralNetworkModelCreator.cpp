@@ -31,7 +31,8 @@ namespace tops {
     //ProbabilisticModelParameterValuePtr weight = parameters.getMandatoryParameterValue("weight");
     //ProbabilisticModelParameterValuePtr bias = parameters.getMandatoryParameterValue("bias");
     ProbabilisticModelParameterValuePtr layers = parameters.getMandatoryParameterValue("layers");
-    ProbabilisticModelParameterValuePtr sequence_length = parameters.getMandatoryParameterValue("sequence_length");
+    ProbabilisticModelParameterValuePtr upstream_length = parameters.getMandatoryParameterValue("upstream_length");
+    ProbabilisticModelParameterValuePtr downstream_length = parameters.getMandatoryParameterValue("downstream_length");
     ProbabilisticModelParameterValuePtr model_file = parameters.getOptionalParameterValue("trained_model_file");    
 
     if(layers == NULL) {
