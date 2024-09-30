@@ -894,7 +894,7 @@ private:
     std::string line;
     input.open(filename.c_str());
     if (!input.is_open()) {
-      std::cerr << "Cant open file " << filename << std::endl;
+      std::cerr << "Cant open file config " << filename << std::endl;
       exit(-1);
     }
     string conf;

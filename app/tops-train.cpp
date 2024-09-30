@@ -239,6 +239,7 @@ int main(int argc, char ** argv) {
 
                                 }
                                 clock_t begin = clock();
+                                std::cerr << "[INFO] Creating" << std::endl;
                                 ProbabilisticModelPtr model = creator->create( *(readConfig.parameters()));
                                 clock_t end = clock();
                                 std::cerr << "TIME: " << (double)(end - begin)/CLOCKS_PER_SEC << std::endl;

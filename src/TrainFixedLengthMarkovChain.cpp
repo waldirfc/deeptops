@@ -76,7 +76,7 @@ ProbabilisticModelPtr TrainFixedLengthMarkovChain::create(
         ContextTreePtr tree = ContextTreePtr(new ContextTree(alphabet));
 
         std::cout << "READY TREE TO TRAIN" << std::endl;
-        std::cout << tree->str() << std::endl;
+        //std::cout << tree->str() << std::endl;
 
         if(apriori != NULL ){
           tree->initializeCounter(sample_set, orderpar->getInt(), 0, weights);

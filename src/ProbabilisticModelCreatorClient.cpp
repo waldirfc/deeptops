@@ -46,6 +46,7 @@
 #include "MaximalDependenceDecompositionCreator.hpp"
 
 #include "NeuralNetworkModelCreator.hpp"
+#include "OverlappedProbabilisticModelCreator.hpp"
 
 #include "util.hpp"
 
@@ -116,7 +117,7 @@ namespace tops
     if(_createModelCommand.find(command) == _createModelCommand.end())
       {
         cerr << "ERROR: invalid  model: " << command << endl;
-        cerr << "Implemented model are: " << endl;
+        cerr << "Implemented models are: " << endl;
         map<string, ProbabilisticModelCreatorPtr>::iterator it;
         for(it = _createModelCommand.begin(); it != _createModelCommand.end(); it++)
           cerr << "\t" << it->first << endl;
@@ -133,11 +134,11 @@ namespace tops
   }
 
     ProbabilisticModelPtr ProbabilisticModelCreatorClient::create(const std::string & input_file_name)
-    {
+    {        
         ProbabilisticModelPtr m = StoreLoadedModel::instance()->get(input_file_name);
         if(m != NULL)
-            return m;
-        m = create(readConfigurationFromFile(input_file_name));
+            return m;        
+        m = create(readConfigurationFromFile(input_file_name));        
         return StoreLoadedModel::instance()->add(input_file_name, m);
     }
 
@@ -150,7 +151,7 @@ namespace tops
     input.open(filename.c_str());
     if(!input.is_open())
       {
-        std::cerr << "Cant open file "  << filename << std::endl;
+        std::cerr << "Cant open file creator "  << filename << std::endl;
         return _p;
       }
     string conf;
@@ -208,7 +209,7 @@ namespace tops
       } else {
         cerr << "ERROR: invalid  model selection criteria: "
              << command << endl;
-        cerr << "Implemented model selection are: " << endl;
+        cerr << "Implemented models selection are: " << endl;
         map<string, ProbabilisticModelCreatorPtr>::iterator it;
         for (it = _modelSelectionCommand.begin(); it
                != _modelSelectionCommand.end(); it++)
@@ -326,7 +327,9 @@ namespace tops
     _createModelCommand["MaximalDependenceDecomposition"] =
       MaximalDependenceDecompositionCreatorPtr(new MaximalDependenceDecompositionCreator());
 
-    _createModelCommand["NeuralNetworkModel"] = NeuralNetworkModelCreatorPtr(new NeuralNetworkModelCreator());
+    _createModelCommand["NeuralNetworkModel"] = NeuralNetworkModelCreatorPtr(new NeuralNetworkModelCreator()); // pure neural networks
+    _createModelCommand["OverlappedModel"] = OverlappedProbabilisticModelCreatorPtr(new OverlappedProbabilisticModelCreator()); // shifted neural networks (specially for signal regions)
+    
     _trainingCommand["SGDNeuralNetwork"] = TrainNeuralNetworkPtr(new TrainNeuralNetwork());
 
   }

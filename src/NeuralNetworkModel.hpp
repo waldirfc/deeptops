@@ -131,8 +131,11 @@ namespace tops {
     virtual double evaluatePosition(const Sequence & s, unsigned int i) const ;
 
     virtual std::vector<int> classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, torch::Device device);
+    
     virtual bool initialize_prefix_sum_array(const Sequence & s);
     virtual double prefix_sum_array_compute(int begin , int end);
+
+    DoubleVector getScores() const;
   };
 
   typedef boost::shared_ptr<NeuralNetworkModel> NeuralNetworkModelPtr;

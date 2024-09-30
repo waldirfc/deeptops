@@ -360,7 +360,7 @@ namespace tops {
         //so we need to override the initialize_prefix_sum_array
         //instead of usint the superclass method that calls evaluate() for each position of the sequence
         //we one-hot encode the whole sequence and generate all sequences from the sliding window as a batch
-        //evaluation will be much faster as it will fully use pythorch's paralellism
+        //evaluation will be much faster as it will fully use pythorch's paralellism        
         
         _scores.resize(s.size());
         if(s.size() < _sequence_length){ // Do not initialize if the sequence is shorter than the input of the network
@@ -398,7 +398,7 @@ namespace tops {
         //std::cout << "predictions:\n";
         //for (int i=0; i<predictions.size(); i++) std::cout << predictions[i] << "\n";        
         //std::cout << "scores:\n";        
-        std::cout << "[INFO] " << _trained_model_file << " found:\n";
+        //std::cout << "[INFO] " << _trained_model_file << " found:\n";
         int ss_count = 1;
         for (int i=0; i<_scores.size(); i++){
             if (predictions[i]){
@@ -435,6 +435,10 @@ namespace tops {
     Sequence & NeuralNetworkModel::choose(Sequence & s, int size ) const {
         //std::cerr << "Not implemented" << std::endl;
         return s;
+    }
+
+    DoubleVector NeuralNetworkModel::getScores() const {
+        return _scores;
     }
 
 }

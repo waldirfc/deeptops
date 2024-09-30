@@ -122,6 +122,8 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
     "/home/waldir/Documents/deeptops/src/TrainProfileHMMBaumWelch.hpp"
     "/home/waldir/Documents/deeptops/src/NeuralNetworkModel.hpp"
     "/home/waldir/Documents/deeptops/src/NeuralNetworkModelCreator.hpp"
+    "/home/waldir/Documents/deeptops/src/OverlappedProbabilisticModel.hpp"
+    "/home/waldir/Documents/deeptops/src/OverlappedProbabilisticModelCreator.hpp"
     )
 endif()
 

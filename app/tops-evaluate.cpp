@@ -101,8 +101,8 @@ int main (int argc, char ** argv)
         Sequence s = entry.getSequence();
         if(s.size() == 0)
           continue;        
-        //double prob =  m->evaluate(s, 0, s.size(), phase);
-        double prob =  m->evaluatePosition(s, 301, phase); //301-1
+        double prob =  m->evaluate(s, 0, s.size(), phase);
+        //double prob =  m->evaluatePosition(s, 301, phase); //301-1
 
 #if 1
   m->initialize_prefix_sum_array(s,0);
