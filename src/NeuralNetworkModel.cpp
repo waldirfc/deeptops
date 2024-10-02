@@ -208,7 +208,7 @@ namespace tops {
                 
                 // Output the loss and checkpoint every 10 batches.
                 if (++batch_index % 100 == 0) {
-                    std::cout << "Epoch: " << epoch << " | Batch: " << batch_index
+                    std::cerr << "Epoch: " << epoch << " | Batch: " << batch_index
                     << " | Loss: " << loss.item<float>() << std::endl;
                 }
                 loss_value = loss.item<double>();
@@ -245,7 +245,7 @@ namespace tops {
                 
                 torch::Tensor max_value_tensor = output.max();                
                 torch::Tensor probs = torch::softmax(output, 1);
-                std::cout << "evaluate_position" << i << "\n\toutput: (" << output << ")\n\tprobability: (" << probs << ")" << std::endl;
+                std::cerr << "evaluate_position" << i << "\n\toutput: (" << output << ")\n\tprobability: (" << probs << ")" << std::endl;
                 return log((probs.select(1, 1)).item<double>());
             }
             catch (const c10::Error& e) {
@@ -350,7 +350,7 @@ namespace tops {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> total_time = end - start;
-        std::cout << "Total time for predictions: " << total_time.count() << " seconds" << std::endl;
+        std::cerr << "Total time for predictions: " << total_time.count() << " seconds" << std::endl;
 
         return predictions;
     }
@@ -385,7 +385,7 @@ namespace tops {
         torch::Tensor stacked_subsequences = stack_subsequences(_subsequences);
 
        
-        std::cout << "subseq size: " << _subsequences.size() << std::endl;
+        std::cerr << "subseq size: " << _subsequences.size() << std::endl;
         //std::cout << "tensor_subseq: " << stacked_subsequences.sizes() << std::endl;
         
         // Classify each subsequence in batches
@@ -402,19 +402,19 @@ namespace tops {
         int ss_count = 1;
         for (int i=0; i<_scores.size(); i++){
             if (predictions[i]){
-                std::cout << "#" << ss_count++ << "\t" << i + _upstream_length << "\t" << exp(_scores[i]) << "\t";
+                std::cerr << "#" << ss_count++ << "\t" << i + _upstream_length << "\t" << exp(_scores[i]) << "\t";
                 int step = -6;
                 for(; step < -1; step++){
-                    std::cout << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
+                    std::cerr << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
                 }
-                std::cout << "[" << alphabet()->getSymbol(s[i+_upstream_length-1])->name() << alphabet()->getSymbol(s[i+_upstream_length])->name() << "]";
+                std::cerr << "[" << alphabet()->getSymbol(s[i+_upstream_length-1])->name() << alphabet()->getSymbol(s[i+_upstream_length])->name() << "]";
                 for(step=1; step <= 5; step++){
-                    std::cout << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
+                    std::cerr << alphabet()->getSymbol(s[i+_upstream_length+step])->name();
                 }
-                std::cout << std::endl;
+                std::cerr << std::endl;
             }
         }
-        std::cout << std::endl;
+        std::cerr << std::endl;
         
         _initialized = true;
         return true;

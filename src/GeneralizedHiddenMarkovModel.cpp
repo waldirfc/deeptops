@@ -1394,9 +1394,7 @@ namespace tops
        {
           std::cout << " -> _model[" << iteratorX->first << "]: " << iteratorX->second->str();
        }
-       std::cout << "\n";*/
-    std::cout << "GHMM intialized\n"
-              << this->str();
+       std::cout << "\n";*/    
   }
 
 }

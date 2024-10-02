@@ -41,7 +41,8 @@ coding_duration_model =
 
 NonCoding = [ observation = noncoding_model ]
 
-Start = [ observation = start_model ]
+Start = [ observation = start_model
+sequence_length = 2 ]
 
 Stop = [ observation = stop_model 
           sequence_length = 27 ]
