@@ -75,6 +75,7 @@ namespace tops {
         _sequence_length = _upstream_length + _downstream_length;
         _initialized = false;
 
+        std::cerr << "[ERROR] train model file: " << _trained_model_file << "\n";
         if (_trained_model_file != ""){ //there is a trained model in jit format
             try {
                 // Deserialize the ScriptModule from a file using torch::jit::load()                
@@ -89,7 +90,7 @@ namespace tops {
                 non_const_jit_module->eval();
             }
             catch (const c10::Error& e) {
-                std::cerr << "error loading the trained model\n";
+                std::cerr << "error loading the trained model (" << e << ")\n";
             }
         }
         //std::cout << this->str();
