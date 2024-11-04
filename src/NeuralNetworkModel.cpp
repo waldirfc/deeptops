@@ -74,8 +74,7 @@ namespace tops {
         _downstream_length = downstream_length;
         _sequence_length = _upstream_length + _downstream_length;
         _initialized = false;
-
-        std::cerr << "[ERROR] train model file: " << _trained_model_file << "\n";
+        
         if (_trained_model_file != ""){ //there is a trained model in jit format
             try {
                 // Deserialize the ScriptModule from a file using torch::jit::load()                
@@ -343,16 +342,19 @@ namespace tops {
 
             torch::Tensor batch_tensor = stacked_subsequences.slice(0, start_idx, end_idx).to(device);
 
+            // Perform the forward pass of the trained model on the batch tensor
             auto outputs = _trained_module_nn.forward({batch_tensor}).toTensor();
-            auto predicted = std::get<1>(outputs.max(1)).cpu();
-
+            
+            // Apply softmax to the outputs to get the probabilities of each class
             torch::Tensor probs = torch::softmax(outputs, 1);
-            auto probs_max = std::get<0>(probs.max(1)).cpu();
-            //std::cout << "subsequences\n\toutput: (" << outputs << ")\n\tprobability: (" << probs << ")" << std::endl;
-
-            for (int i = 0; i < predicted.size(0); ++i) {
-                predictions.push_back(predicted[i].item<int>());
-                _scores.push_back(log(probs_max[i].item<int>()));
+            
+            // Store the predictions and scores in the respective vectors
+            for (int i = 0; i < probs.size(0); ++i) {
+                auto probs_max = probs[i].max();
+                auto predicted = probs[i].argmax();
+                predictions.push_back(predicted.item<int>());
+                _scores.push_back(log(probs_max.item<double>()));
+                std::cerr << "[INFO] tuple: \t class:" << predicted.item<int>() << "\tp:" << probs_max.item<double>() << "\tlog(p):" << log(probs_max.item<double>()) << "\ntensor:" << probs[i] << "\n";
             }
         }
 
@@ -393,7 +395,7 @@ namespace tops {
         torch::Tensor stacked_subsequences = stack_subsequences(_subsequences);
 
        
-        std::cerr << "subseq size: " << _subsequences.size() << std::endl;
+        //std::cerr << "subseq size: " << _subsequences.size() << std::endl;
         //std::cout << "tensor_subseq: " << stacked_subsequences.sizes() << std::endl;
         
         // Classify each subsequence in batches

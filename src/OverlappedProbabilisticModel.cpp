@@ -92,8 +92,8 @@ namespace tops {
     for (i += submodel_sum_array.size(); i < _overlapped_sum_array.size(); i++)
       _overlapped_sum_array[i] = -HUGE;
 
-    std::cerr << "[INFO] submodel = " << submodel_sum_array.size() << "\n";
-    std::cerr << "[INFO] decorator = " << _overlapped_sum_array.size() << "\n";
+    //std::cerr << "[INFO] submodel = " << submodel_sum_array.size() << "\n";
+    //std::cerr << "[INFO] decorator = " << _overlapped_sum_array.size() << "\n";
     return submodel_initialize;
  }
   std::string OverlappedProbabilisticModel::model_name () const {
