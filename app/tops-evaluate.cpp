@@ -96,23 +96,26 @@ int main (int argc, char ** argv)
 
       SequenceEntry entry(alphabet);
       while(!cin.eof()) {
-        cin >> entry;
-        //std::cout << "entry: " << entry << std::endl;
+        cin >> entry; 
         Sequence s = entry.getSequence();
         if(s.size() == 0)
           continue;        
-        double prob =  m->evaluate(s, 0, s.size(), phase);
+	//std::cerr << "[TEST] " << entry.getName() << std::endl;
+	double prob =  m->evaluate(s, 0, s.size(), phase);
         //double prob =  m->evaluatePosition(s, 301, phase); //301-1
 
-#if 1
+#if 0
   m->initialize_prefix_sum_array(s,0);
-  double prob2 = m->prefix_sum_array_compute(0, s.size()-1,0);
+  //double prob2 = m->prefix_sum_array_compute(0, s.size()-1,0);
+  double prob2 = m->prefix_sum_array_compute(300,301,0);
+  double prob3 = m->prefix_sum_array_compute(301,302,0);
   std::cout << entry.getName() << "\t"
-            << exp(prob) << " " << exp(prob2) <<std::endl;
+            << "eval:" << exp(prob) << "\tprefix300:" << exp(prob2) << "\tprefix301:" << exp(prob3) <<std::endl;
 #else
   std::cout << entry.getName() << "\t"
             << prob << std::endl;
 #endif
+      	//std::cerr << "[END TEST]\n\n";
       }
     }
   catch (boost::program_options::invalid_command_line_syntax &e)
@@ -134,6 +137,6 @@ int main (int argc, char ** argv)
         cout << argv[0] << ": ToPS version " << APP_VERSION << std::endl;
         cout << std::endl;
         cout << desc << endl;
-    }
+    } 
   return 0;
 }

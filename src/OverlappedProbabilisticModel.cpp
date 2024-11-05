@@ -62,7 +62,18 @@ namespace tops {
     if (length != _model_virtual_size){
         r = -HUGE ;//check the log library calls
     }
+
+    /*std::cerr << "[DEBUG] Overlapped sum array values around begin:\n";
+    for (int i = begin - 5; i <= begin + 5; ++i) {
+      if (i >= 0 && i < _overlapped_sum_array.size()) {
+        std::cerr << "Index " << i << ": " << _overlapped_sum_array[i] << "\n";
+      }
+    }*/
+
     r = _overlapped_sum_array[begin];
+    
+    //std::cerr << "[INFO] prefix overlapped:\t" << "begin = " << begin << " end = " << end << " r = " << r << " virtual_size = " << _model_virtual_size << std::endl;
+
     return r;
   }
   double OverlappedProbabilisticModel::prefix_sum_array_compute(int begin , int end, int phase){
@@ -86,7 +97,7 @@ namespace tops {
     //  insert submodel scores
     //_overlapped_sum_array.insert(_overlapped_sum_array.begin() + i - 1, submodel_sum_array.begin(), submodel_sum_array.end());
     for (size_t j = 0; j < submodel_sum_array.size(); j++)
-      _overlapped_sum_array[i++] = submodel_sum_array[j];
+      _overlapped_sum_array[i+j] = submodel_sum_array[j];
     
     //  overlap to the right
     for (i += submodel_sum_array.size(); i < _overlapped_sum_array.size(); i++)

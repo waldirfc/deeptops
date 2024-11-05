@@ -409,7 +409,10 @@ namespace tops {
         //for (int i=0; i<predictions.size(); i++) std::cout << predictions[i] << "\n";        
         //std::cout << "scores:\n";        
         //std::cout << "[INFO] " << _trained_model_file << " found:\n";
-        int ss_count = 1;
+        
+
+	// test splice site predictions
+	/*int ss_count = 1;
         for (int i=0; i<_scores.size(); i++){
             if (predictions[i]){
                 std::cerr << "#" << ss_count++ << "\t" << i + _upstream_length << "\t" << exp(_scores[i]) << "\t";
@@ -424,7 +427,7 @@ namespace tops {
                 std::cerr << std::endl;
             }
         }
-        std::cerr << std::endl;
+        std::cerr << std::endl;*/
         
         _initialized = true;
         return true;
@@ -448,7 +451,13 @@ namespace tops {
     }
 
     DoubleVector NeuralNetworkModel::getScores() const {
-        return _scores;
+        
+	/*std::cerr << "[DEBUG] Scores: ";
+        for (const auto& score : _scores) {
+            std::cerr << score << " ";
+        }
+        std::cerr << std::endl;*/
+	return _scores;
     }
 
 }
