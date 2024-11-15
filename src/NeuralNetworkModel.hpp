@@ -127,7 +127,8 @@ namespace tops {
 
     // Evaluates a Sequence
     // does it make sense to have evaluate for Neural Network class? it is the likelihood of the sequence, perhaps this model does not need it
-    //virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end) const;
+    virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end) const;
+    virtual double evaluate(const Sequence & s, unsigned int begin, unsigned int end, unsigned int phase) const;
     virtual double evaluatePosition(const Sequence & s, unsigned int i) const ;
 
     virtual std::vector<int> classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, torch::Device device);

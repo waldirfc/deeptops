@@ -31,9 +31,9 @@ namespace tops {
 
 
   double OverlappedProbabilisticModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end) const{
-    Sequence revCompSeq;
-    
-    double result = subModel()->evaluate(revCompSeq, begin - _left_overlap, end + _right_overlap);
+    //Sequence revCompSeq;
+    //double result = subModel()->evaluate(revCompSeq, begin - _left_overlap, end + _right_overlap);
+    double result = subModel()->evaluate(s, begin, end);
     return result;
   }
 

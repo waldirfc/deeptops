@@ -261,7 +261,8 @@ namespace tops {
 
     // \@begin should be 0 and @end should be the same as sequence_length (where sequence_length is the sum of upstream and downstream)
     // ?? CHECK: evaluate is the sequence likelihood given this model ??
-    /*double NeuralNetworkModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end) const {        
+    double NeuralNetworkModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end) const {        
+	   
         if((end - begin) == _sequence_length){
             try {
             
@@ -287,8 +288,9 @@ namespace tops {
                 
                 torch::Tensor max_value_tensor = output.max();                
                 torch::Tensor probs = torch::softmax(output, 1);
-                std::cout << "output: (" << output << ")\nprobability: (" << probs << ")" << std::endl;
-                return (probs.select(1, 1)).item<double>();
+		auto probs_max = probs.select(1,1);
+                //std::cerr << "[DEBUG]\toutput: (" << probs << ")\n\tprobability: (" << probs_max.item<double>() << ")" << std::endl;
+                return log(probs_max.item<double>());
                 
             }
             catch (const c10::Error& e) {
@@ -297,10 +299,14 @@ namespace tops {
             }
         }
         else {            
-            std::cerr << "Invalid sequence length evaluating" << std::endl;
+            std::cerr << "[ERROR] Invalid sequence length evaluating " << begin <<"\t"<<end<<"\t"<<_sequence_length << std::endl;
             return 0.0;
         }
-    }*/
+    }
+
+    double NeuralNetworkModel::evaluate(const Sequence & s, unsigned int begin, unsigned int end, unsigned int phase) const {
+    	return evaluate(s, begin, end);
+    }
 
     std::vector<torch::Tensor> split_sequence(const torch::Tensor& one_hot_sequence, int subseq_size, int stride) {
         std::vector<torch::Tensor> subsequences;
