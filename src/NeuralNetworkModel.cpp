@@ -135,7 +135,7 @@ namespace tops {
         return par;
     }
 
-    // Transform input_data (vector<vector<int>>) in tensor_data (Tensor)
+    // Transform input_data (vector<vector<int>>) in tensor_data (Tensor) one-hot encoded
     torch::Tensor NeuralNetworkModel::sequences_to_Tensor(SequenceList & input_data) const {
         
         // Step 1: Convert the vector of vectors to a flat vector
@@ -155,9 +155,24 @@ namespace tops {
 
         // Step 4: Convert the tensor to a one-hot encoded tensor
         torch::Tensor one_hot_tensor = torch::one_hot(tensor_data, num_classes);
+	    std::cerr << "[DEBUG] one hot tensor: " << one_hot_tensor.sizes() << " | " << tensor_data.sizes() << "\n";
 
         // Step 5: Convert the one-hot tensor to the desired data type (e.g., float)
-        one_hot_tensor = one_hot_tensor.to(torch::kFloat);
+        one_hot_tensor = one_hot_tensor.to(torch::kFloat32);
+        /*for(int i=0;i<10;i++){
+            std::cerr << "[DEBUG] tensor type: " << tensor_data[0][i] << " -> " << one_hot_tensor[0][i] << std::endl;
+        }*/
+        
+        // CREATE TENSOR PADDING WITH ZEROS UPSTREAM AND DOWNSTREAM
+        #if 0
+            // Create tensors of zeros for the beginning and the end
+            auto zeros_begin = torch::zeros({1, 200, 4});
+            auto zeros_end = torch::zeros({1, 200, 4});
+
+            // Concatenate the tensors
+            one_hot_tensor = torch::cat({zeros_begin, one_hot_tensor, zeros_end}, 1);
+            std::cerr << "[DEBUG] one hot tensor: " << one_hot_tensor.sizes() << " | " << tensor_data.sizes() << "\n";
+        #endif
 
         return one_hot_tensor;
     }
@@ -288,7 +303,7 @@ namespace tops {
                 
                 torch::Tensor max_value_tensor = output.max();                
                 torch::Tensor probs = torch::softmax(output, 1);
-		auto probs_max = probs.select(1,1);
+		        auto probs_max = probs.select(1,1);
                 //std::cerr << "[DEBUG]\toutput: (" << probs << ")\n\tprobability: (" << probs_max.item<double>() << ")" << std::endl;
                 return log(probs_max.item<double>());
                 
@@ -298,7 +313,7 @@ namespace tops {
                 return 0.0;
             }
         }
-        else {            
+        else {
             std::cerr << "[ERROR] Invalid sequence length evaluating " << begin <<"\t"<<end<<"\t"<<_sequence_length << std::endl;
             return 0.0;
         }
@@ -330,7 +345,7 @@ namespace tops {
     }
 
     // Classify each subsequence in batches and measure time
-    std::vector<int> NeuralNetworkModel::classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, torch::Device device) {
+    std::vector<int> NeuralNetworkModel::classify_subsequences_in_batches(const torch::Tensor& stacked_subsequences, int batch_size, double threshold, torch::Device device) {
         /**
          * @brief A vector to store the predictions made by the neural network model.
          * 
@@ -346,27 +361,33 @@ namespace tops {
             int64_t start_idx = batch_idx * batch_size;
             int64_t end_idx = std::min(start_idx + static_cast<int64_t>(batch_size), stacked_subsequences.size(0));
 
-            torch::Tensor batch_tensor = stacked_subsequences.slice(0, start_idx, end_idx).to(device);
+            torch::Tensor batch_tensor = stacked_subsequences.slice(0, start_idx, end_idx).to(device);	        
 
             // Perform the forward pass of the trained model on the batch tensor
-            auto outputs = _trained_module_nn.forward({batch_tensor}).toTensor();
+            auto probs_aux = _trained_module_nn.forward({batch_tensor}).toTensor();            
             
             // Apply softmax to the outputs to get the probabilities of each class
-            torch::Tensor probs = torch::softmax(outputs, 1);
+            torch::Tensor probs = torch::softmax(probs_aux, 1);
             
             // Store the predictions and scores in the respective vectors
             for (int i = 0; i < probs.size(0); ++i) {
-                auto probs_max = probs[i].max();
-                auto predicted = probs[i].argmax();
-                predictions.push_back(predicted.item<int>());
-                _scores.push_back(log(probs_max.item<double>()));
-                std::cerr << "[INFO] tuple: \t class:" << predicted.item<int>() << "\tp:" << probs_max.item<double>() << "\tlog(p):" << log(probs_max.item<double>()) << "\ntensor:" << probs[i] << "\n";
-            }
+		        // MUST I SAVE THE MAX PROBABILTY AND CLASS PREDICTED OR THE CLASS 1 WITH THE PROBABILITY OF 1 (to ensure low probs in viterbi)?????????
+                auto probs_max = probs[i][1].item<double>();
+                if(probs_max < threshold) probs_max = 0; // treat as ZERO to avoid FP ???
+                auto predicted = probs_max < threshold ? 0:1;
+                predictions.push_back(predicted);
+                _scores.push_back(log(probs_max));
+                
+                //std::cerr << probs[i][1].item<double>() << "\n";
+                // DEBUG print the splice sites predicted above the threshold
+                //if (_scores.size()+199>1775 && _scores.size()+199<1785)
+	                //std::cerr << "[INFO] NN splice site \t#:" << _scores.size()+199 << "\tp:" << probs[i][1].item<double>() << "\tlog(p):" << log(probs[i][1].item<double>()) << "\n";
+            }            
         }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> total_time = end - start;
-        std::cerr << "Total time for predictions: " << total_time.count() << " seconds" << std::endl;
+        //std::cerr << "Total time for predictions: " << total_time.count() << " seconds" << std::endl;
 
         return predictions;
     }
@@ -377,10 +398,12 @@ namespace tops {
         //instead of usint the superclass method that calls evaluate() for each position of the sequence
         //we one-hot encode the whole sequence and generate all sequences from the sliding window as a batch
         //evaluation will be much faster as it will fully use pythorch's paralellism        
-        
+        if(_initialized)
+            return _initialized;
+
         _scores.resize(s.size());
         if(s.size() < _sequence_length){ // Do not initialize if the sequence is shorter than the input of the network
-            std::cerr << "Invalid sequence length initializing\n";
+            std::cerr << "[ERROR] Invalid sequence length initializing\n";
             _initialized = false;
             return false;
         }
@@ -390,24 +413,26 @@ namespace tops {
         // initialize a Tensor for the whole sequence        
         SequenceList sample = {s};
         _last_sequence = sequences_to_Tensor(sample);
-        // Remove the dimension of size 1
+        // Remove extra dimension (of size 1)
         auto tensor_squeezed = _last_sequence.squeeze(0);
-
-        //std::cout << "last_seq: " << _last_sequence.sizes() << std::endl;
-        //std::cout << "last_seq_squeezed: " << tensor_squeezed.sizes() << std::endl;
+	
+	    //std::cerr << "[DEBUG] last sequence: " << _last_sequence.sizes() << std::endl;
+        //std::cerr << "[DEBUG] last sequence squeezed: " << tensor_squeezed.sizes() << std::endl; 
         
         auto _subsequences = split_sequence(tensor_squeezed, _sequence_length, 1);
         // Stack the subsequences into a single tensor
         torch::Tensor stacked_subsequences = stack_subsequences(_subsequences);
-
        
-        //std::cerr << "subseq size: " << _subsequences.size() << std::endl;
-        //std::cout << "tensor_subseq: " << stacked_subsequences.sizes() << std::endl;
+        //std::cerr << "[DEBUG] split sequences size: " << _subsequences.size() << std::endl;
+        //std::cerr << "[DEBUG] stacked subseq size: " << stacked_subsequences.sizes() << std::endl;
         
         // Classify each subsequence in batches
-        torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
-        int batch_size = 64;
-        std::vector<int> predictions = classify_subsequences_in_batches(stacked_subsequences, batch_size, device);
+        // ???? cuda operations are not working
+        //torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+        torch::Device device(torch::kCPU);
+        int batch_size = 1024;
+	    double threshold_p = 0.00;
+        std::vector<int> predictions = classify_subsequences_in_batches(stacked_subsequences, batch_size, threshold_p, device);
         //_scores.push_back(predictions);
         
         
@@ -415,10 +440,10 @@ namespace tops {
         //for (int i=0; i<predictions.size(); i++) std::cout << predictions[i] << "\n";        
         //std::cout << "scores:\n";        
         //std::cout << "[INFO] " << _trained_model_file << " found:\n";
-        
 
 	// test splice site predictions
-	/*int ss_count = 1;
+#if 0
+	int ss_count = 1;
         for (int i=0; i<_scores.size(); i++){
             if (predictions[i]){
                 std::cerr << "#" << ss_count++ << "\t" << i + _upstream_length << "\t" << exp(_scores[i]) << "\t";
@@ -433,10 +458,11 @@ namespace tops {
                 std::cerr << std::endl;
             }
         }
-        std::cerr << std::endl;*/
+        std::cerr << std::endl;
+#endif
         
         _initialized = true;
-        return true;
+        return _initialized;
     }
 
     double NeuralNetworkModel::prefix_sum_array_compute(int begin , int end) {

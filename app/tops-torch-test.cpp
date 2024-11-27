@@ -637,6 +637,7 @@ int main (int argc, char* argv[]) {
     ------------------------------------------------------------------------------------------
     */
 
+    /* TEST LOAD TORCH JIT MODEL */
     srand(time(NULL));
 
     {
@@ -649,7 +650,7 @@ int main (int argc, char* argv[]) {
         std::cout << filepath << " ...\n";
         module = torch::jit::load(filepath);
         std::cout << filepath << " OK\n";
-        auto input_data = torch::randn({1, 400, 4});
+        auto input_data = torch::zeros({1, 400, 4});
         //auto ivalue = torch::jit::IValue(input_data);
         //std::vector<torch::jit::IValue> input;
         //input.push_back(ivalue);
@@ -772,34 +773,7 @@ int main (int argc, char* argv[]) {
     ------------------------------------------------------------------------------------------
     */
 
-    /* TEST Neural Network Creator */
-    /*options_description desc("Allowed options");
-    desc.add_options()
-      ("help,?", "produce help message")
-      ("model,m", value<string> (), "model")
-      ("length,l", value<int> (), "length of the sequences")
-      ("numseq,n", value<int> (), "number of sequences")
-      ("output,o", value<string>(), "file to store  the sequences")
-      ("hidden_states,h", "outputs the hidden state sequences")
-      ("fasta,F",  "use fasta format");
-    try
-    {      
-      variables_map vm;
-      store(parse_command_line(argc, argv, desc), vm);
-      notify(vm);
-
-      int nseq =  vm["numseq"].as<int>();
-      int length = vm["length"].as<int>();
-      string model_file = vm["model"].as<string>();
-      ProbabilisticModelCreatorClient creator;
-      ProbabilisticModelPtr model = creator.create(model_file);
-
-      std::cout << model->str() << std::endl;
-    }
-    catch(const std::exception& e)
-    {
-      std::cerr << e.what() << '\n';
-    }*/
+    
     
     return 0;
 

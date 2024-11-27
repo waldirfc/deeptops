@@ -36,6 +36,7 @@ namespace tops
     ProbabilisticModelParameterValuePtr rigth_overlap_par = parameters.getMandatoryParameterValue("rigth_overlap");
     ProbabilisticModelParameterValuePtr signal_size_par = parameters.getMandatoryParameterValue("signal_size"); 
 
+    std::cerr << "[INFO] Overlapped models: " << model_par->getString() << std::endl;
     if(model_par == NULL || left_overlap_par == NULL || rigth_overlap_par == NULL || signal_size_par == NULL) {
         std::cerr << "[INFO] Overlapped parameters" << std::endl;
         std::cerr << help() << std::endl;

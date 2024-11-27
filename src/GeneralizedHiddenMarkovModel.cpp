@@ -950,13 +950,14 @@ namespace tops
     }
 #if 0
   for(int i = 0; i < size; i++) {
-      std::cerr << "i: " << i << std::endl;
+      std::cerr << "[#:" << i << " " << alphabet()->getSymbol(s[i])->name() << "]" << std::endl;
       for(int k = 0; k < nstates; k++){
-          std::cerr << " "  << getStateName(k) << " " << gamma(k, i) << " " << getStateName(psi(k, i)) << " " << psilen(k,i) << std::endl;
+          std::cerr << "-> S:"  << getStateName(k) << "\tg:" << gamma(k, i) << "\tp:" << getStateName(psi(k, i)) << "\td:" << psilen(k,i) << std::endl;
       }
 
   }
 #endif
+    std::cerr << "[INFO] Last max S:" << _all_states[state]->name() << "\td:" << psilen(state, L) << "\tpre:" << _all_states[psi(state, L)]->name() << "\tg:" << max<<"|"<<exp(max)<< std::endl;
     while (1)
     {
       int d = psilen(state, L);
@@ -975,21 +976,20 @@ namespace tops
       }
       if (L != 0 && d == 0)
       {
-        std::cerr << "Something wrong: [ predicted state duration equals to " << d << "]" << std::endl;
+        std::cerr << "[ERROR] Something wrong: [ predicted state duration equals to " << d << "]" << std::endl;
         break;
       }
       state = p;
     }
 #if 0
   for(int i = 0; i < size ; i ++) {
-      std::cerr << "[" << i << " " << alphabet()->getSymbol(s[i])->name() << "]" << std::endl; ;
-      for(int k = 0; k < nstates; k++)
-          {
-	    int d = psilen(k, i);
-	    assert (d >= 0);
-	    assert (d <= s.size());
-	    std::cerr << " " << _all_states[k] -> name() << " " << gamma(k,i) << " " << _all_states[psi(k, i)]->name() << " " << d << std::endl;
-          }
+      std::cerr << "[#" << i << " " << alphabet()->getSymbol(s[i])->name() << "]" << std::endl;      
+      for(int k = 0; k < nstates; k++) {
+        int d = psilen(k, i);
+        assert (d >= 0);
+        assert (d <= s.size());        
+        std::cerr << "--> S:" << _all_states[k]->name() << "\td:" << d << "\tpre:" << _all_states[psi(k, i)]->name() << "\tg:" << gamma(k,i)<<"|"<<exp(gamma(k,i))<< std::endl;
+      }      
   }
 #endif
     return max;

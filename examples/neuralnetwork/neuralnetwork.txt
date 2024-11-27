@@ -35,4 +35,7 @@ downstream_length = 99
 alphabet=("A", "C", "G", "T")
 
 # this is an optional parameter when loading a previous trained neural network with Torch JitScript
-trained_model_file = "../neuralnetwork/imbalanced_acceptor_d_mel_fold_1_jit_1-4.pt"
+
+trained_model_file = "../neuralnetwork/acceptor_400_torch.pt"
+#trained_model_file = "../neuralnetwork/imbalanced_acceptor_fold_5_aux_jit.pt"
+#imbalanced_acceptor_d_mel_fold_1_jit_1-4.pt"

@@ -85,10 +85,19 @@ namespace tops {
   }
 
   bool OverlappedProbabilisticModel::initialize_prefix_sum_array(const Sequence & s) {
+    // call submodel initialize prefix sum array    
+    
+    // if it was already analyzed for this sequence do not recompute
+    if(_initialized){
+      //std::cerr<<"[DEBUG] overlapped scores size: "<<_overlapped_sum_array.size()<<std::endl;
+      return _initialized;
+    }
+
     bool submodel_initialize = subModel()->initialize_prefix_sum_array(s);
     
     DoubleVector submodel_sum_array = (boost::dynamic_pointer_cast<NeuralNetworkModel>(subModel()))->getScores();
-    _overlapped_sum_array.resize(_left_overlap + submodel_sum_array.size() + _right_overlap + _model_virtual_size - 1);
+    int total_size = _left_overlap + submodel_sum_array.size() + _right_overlap + _model_virtual_size - 1;
+    _overlapped_sum_array.resize(total_size);
     //shift_right_fill_log_zero(_left_overlap, _my_summ_array)
     //  overlap to the left
     size_t i;
@@ -96,8 +105,14 @@ namespace tops {
       _overlapped_sum_array[i] = -HUGE;
     //  insert submodel scores
     //_overlapped_sum_array.insert(_overlapped_sum_array.begin() + i - 1, submodel_sum_array.begin(), submodel_sum_array.end());
-    for (size_t j = 0; j < submodel_sum_array.size(); j++)
+    for (size_t j = 0; j < submodel_sum_array.size(); j++){
       _overlapped_sum_array[i+j] = submodel_sum_array[j];
+      
+      if(i+j<1000 || i+j>total_size-1000) _overlapped_sum_array[i+j] = -HUGE; // ??? ZERO intergenic regions
+      // DEBUG left and right overlap
+      //if(exp(submodel_sum_array[j]) > 0.98)
+      //  std::cerr<<"[DEBUG] overlapped splice site\t#"<<i+j<<"\tp:"<<_overlapped_sum_array[i+j]<<std::endl;
+    }
     
     //  overlap to the right
     for (i += submodel_sum_array.size(); i < _overlapped_sum_array.size(); i++)
@@ -105,6 +120,7 @@ namespace tops {
 
     //std::cerr << "[INFO] submodel = " << submodel_sum_array.size() << "\n";
     //std::cerr << "[INFO] decorator = " << _overlapped_sum_array.size() << "\n";
+    _initialized = submodel_initialize;
     return submodel_initialize;
  }
   std::string OverlappedProbabilisticModel::model_name () const {
@@ -148,6 +164,7 @@ namespace tops {
     _model_virtual_size = model_virtual_size;
 
     _overlapped_sum_array = {}; // empty scores
+    _initialized = false;
     
     //std::cerr << "$" << subModel()->str() << "$";
     //std::cerr << this->str() << "$";

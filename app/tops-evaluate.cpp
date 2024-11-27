@@ -107,10 +107,12 @@ int main (int argc, char ** argv)
 #if 0
   m->initialize_prefix_sum_array(s,0);
   //double prob2 = m->prefix_sum_array_compute(0, s.size()-1,0);
-  double prob2 = m->prefix_sum_array_compute(300,301,0);
-  double prob3 = m->prefix_sum_array_compute(301,302,0);
+  //double prob2 = m->prefix_sum_array_compute(300,301,0);
+  //double prob3 = m->prefix_sum_array_compute(301,302,0);
+  bool initialize = m->initialize_prefix_sum_array(s);
   std::cout << entry.getName() << "\t"
-            << "eval:" << exp(prob) << "\tprefix300:" << exp(prob2) << "\tprefix301:" << exp(prob3) <<std::endl;
+            << "eval:" << exp(prob) << std::endl;
+            //<< "\tprefix300:" << exp(prob2) << "\tprefix301:" << exp(prob3) <<std::endl;
 #else
   std::cout << entry.getName() << "\t"
             << prob << std::endl;

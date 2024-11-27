@@ -141,6 +141,8 @@ namespace tops {
     int _left_overlap;
     int _right_overlap;
     int _model_virtual_size;
+
+    bool _initialized;
     
     AlphabetPtr revAlphabet;
     DoubleVector _overlapped_sum_array;
