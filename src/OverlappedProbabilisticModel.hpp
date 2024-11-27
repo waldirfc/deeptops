@@ -141,6 +141,7 @@ namespace tops {
     int _left_overlap;
     int _right_overlap;
     int _model_virtual_size;
+    int _reverse;
 
     bool _initialized;
     
@@ -165,7 +166,7 @@ namespace tops {
     virtual std::string str() const;
     std::string model_name () const;
     virtual ProbabilisticModelParameters parameters() const ;
-    virtual void initialize(int left_overlap, int right_overlap, int model_virtual_size) ;
+    virtual void initialize(int left_overlap, int right_overlap, int model_virtual_size, int reverse) ;
 
   };
   typedef boost::shared_ptr<OverlappedProbabilisticModel> OverlappedProbabilisticModelPtr;

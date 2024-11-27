@@ -34,7 +34,9 @@ namespace tops
     ProbabilisticModelParameterValuePtr model_par = parameters.getMandatoryParameterValue("model");
     ProbabilisticModelParameterValuePtr left_overlap_par = parameters.getMandatoryParameterValue("left_overlap");
     ProbabilisticModelParameterValuePtr rigth_overlap_par = parameters.getMandatoryParameterValue("rigth_overlap");
-    ProbabilisticModelParameterValuePtr signal_size_par = parameters.getMandatoryParameterValue("signal_size"); 
+    ProbabilisticModelParameterValuePtr signal_size_par = parameters.getMandatoryParameterValue("signal_size");
+
+    ProbabilisticModelParameterValuePtr reverse_par = parameters.getOptionalParameterValue("reverse");
 
     std::cerr << "[INFO] Overlapped models: " << model_par->getString() << std::endl;
     if(model_par == NULL || left_overlap_par == NULL || rigth_overlap_par == NULL || signal_size_par == NULL) {
@@ -46,6 +48,7 @@ namespace tops
     int left_overlap = left_overlap_par->getInt();
     int rigth_overlap = rigth_overlap_par->getInt();
     int signal_size = signal_size_par->getInt();
+    int reverse = reverse_par->getInt();
     std::string modelstr = model_par->getString();
     std::string modelstr_aux = "";
 
@@ -84,7 +87,7 @@ namespace tops
 
     decorator->setSubModel(m);
     decorator->subModelName(modelstr_aux);    
-    decorator->initialize(left_overlap, rigth_overlap, signal_size);
+    decorator->initialize(left_overlap, rigth_overlap, signal_size, reverse);
     decorator->setAlphabet(m->alphabet());
 
     return decorator;
@@ -95,6 +98,7 @@ namespace tops
     ProbabilisticModelParameterValuePtr left_overlap_par = parameters.getMandatoryParameterValue("left_overlap");
     ProbabilisticModelParameterValuePtr rigth_overlap_par = parameters.getMandatoryParameterValue("rigth_overlap");
     ProbabilisticModelParameterValuePtr signal_size_par = parameters.getMandatoryParameterValue("signal_size"); 
+    ProbabilisticModelParameterValuePtr reverse_par = parameters.getOptionalParameterValue("reverse");
 
     std::cerr << "[INFO] Overlapped models: " << model_par->getString() << std::endl;
     if(model_par == NULL || left_overlap_par == NULL || rigth_overlap_par == NULL || signal_size_par == NULL) {
@@ -105,6 +109,7 @@ namespace tops
     int left_overlap = left_overlap_par->getInt();
     int rigth_overlap = rigth_overlap_par->getInt();
     int signal_size = signal_size_par->getInt();
+    int reverse = reverse_par->getInt();
     std::string modelstr = model_par->getString();
     std::string modelstr_aux = "";
 
@@ -156,7 +161,7 @@ namespace tops
 
     decorator->setSubModel(m);
     decorator->subModelName(modelstr_aux);    
-    decorator->initialize(left_overlap, rigth_overlap, signal_size);
+    decorator->initialize(left_overlap, rigth_overlap, signal_size, reverse);
     decorator->setAlphabet(m->alphabet());
 
     return decorator;

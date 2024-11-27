@@ -118,6 +118,9 @@ namespace tops {
     for (i += submodel_sum_array.size(); i < _overlapped_sum_array.size(); i++)
       _overlapped_sum_array[i] = -HUGE;
 
+    if (_reverse == 1) {
+      std::reverse(_overlapped_sum_array.begin(), _overlapped_sum_array.end());
+    }
     //std::cerr << "[INFO] submodel = " << submodel_sum_array.size() << "\n";
     //std::cerr << "[INFO] decorator = " << _overlapped_sum_array.size() << "\n";
     _initialized = submodel_initialize;
@@ -157,11 +160,12 @@ namespace tops {
     return p;
   }
 
-  void OverlappedProbabilisticModel::initialize(int left_overlap, int right_overlap, int model_virtual_size)
+  void OverlappedProbabilisticModel::initialize(int left_overlap, int right_overlap, int model_virtual_size, int reverse)
   {
     _left_overlap = left_overlap;
     _right_overlap = right_overlap;
     _model_virtual_size = model_virtual_size;
+    _reverse = reverse;
 
     _overlapped_sum_array = {}; // empty scores
     _initialized = false;

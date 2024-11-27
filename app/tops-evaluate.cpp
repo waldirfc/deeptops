@@ -104,8 +104,7 @@ int main (int argc, char ** argv)
 	double prob =  m->evaluate(s, 0, s.size(), phase);
         //double prob =  m->evaluatePosition(s, 301, phase); //301-1
 
-#if 0
-  m->initialize_prefix_sum_array(s,0);
+#if 0  
   //double prob2 = m->prefix_sum_array_compute(0, s.size()-1,0);
   //double prob2 = m->prefix_sum_array_compute(300,301,0);
   //double prob3 = m->prefix_sum_array_compute(301,302,0);
